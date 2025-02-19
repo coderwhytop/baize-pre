@@ -64,7 +64,7 @@ export class ConfigService implements ConfigInstance {
         const file = fsExtra.readFileSync(userConfigFilePath, "utf-8");
         console.log(file, "file");
         // 将用户的配置注入到我们的 store.user.json 中
-        pluginService.set(key, file);
+        pluginService.set(key, file as any);
         loggerService.success("Successfully.");
       }
     } else {

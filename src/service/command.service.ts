@@ -28,6 +28,11 @@ class CommandService implements CommandInstance {
           "Uninstall some plugins and remove their configuration settings that are related to your Node.js version.",
         examples: []
       },
+      template: {
+        alias: "t",
+        description: "Create a new project with a template.",
+        examples: [this.main + "template"]
+      },
       all: {
         alias: "a",
         description:
