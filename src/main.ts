@@ -25,14 +25,14 @@ class Entry {
         .action((options, { parent }) => {
           const subExecWord: string = parent.args[0];
           const modules = this.mainModule.getAll();
-
           for (let ModuleClass of modules) {
-            if (subExecWord === ModuleClass.key) {
+            if (
+              subExecWord === ModuleClass.key ||
+              subExecWord === commandList[ModuleClass.key].alias
+            ) {
               new ModuleClass(parent.args.slice(1));
             }
           }
-
-          // console.log(options, parent.args, "aaa")
         });
     }
     program.parse(process.argv);
