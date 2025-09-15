@@ -324,6 +324,8 @@ class InstallerService implements InstallerInstance {
         name: questionKey,
         message: "Choose the plugins you want to install.",
         choices: storagePlugins,
+        pageSize: 10, // 启用分页模式，激活键盘快捷键
+        loop: false, // 禁用循环选择
         validate(answers: any) {
           if (!answers.length) return "You must choose at least one plugin.";
           return true;
