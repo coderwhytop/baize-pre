@@ -1,59 +1,113 @@
 ## 介绍
 
-功能是标准化前端工程项目-prettier, husky, typescript，
-支持渐进式无侵害接入旧项目;
-也可以一键生成新项目，包括安装插件, 并生成插件对应的配置文件，
-如tsconfig.json ,.husky/pre-commit, .prettierrc等。
-还会检测.git目录不存在，自动init master并创建.gitignore文件,配置git config core.ignorecase false
+Baize Pre 是一个面向前端项目的“规范化与初始化”脚手架，可在新/旧项目中一键接入并配置常用工程化工具（Prettier、Husky、TypeScript 等），帮助快速统一代码规范与提交流程，降低搭建成本与心智负担。
 
-## 前言
+- 支持渐进式、低侵入地接入现有项目
+- 一键为新项目生成并写入规范配置（如 `tsconfig.json`、`.prettierrc`、`.husky/pre-commit` 等）
+- 若不存在 `.git`，可自动初始化 Git、创建 `.gitignore`，并设置 `core.ignorecase=false`
 
-每次公司或者自己创建新项目，都要手动安装 prettier husky typescript等一系列插件 还要配置文件，
-基本记不住的都要去copy上一个项目，带来了心智负担，
-尤其husky每次还要创建pre-commit文件，并且添加echo命令，
-于是打算封装规范化的脚手架，供创建项目，或者旧项目要加上这些配置和依赖的时候使用。
+## 适用范围
 
-## 支持
-
-本插件只基于node，所以无论是node框架项目，还是vue/react/angular/webpack/vite/rollup都适用，
-也无需芥蒂window or mac电脑，且提供默认的配置，
-傻瓜式安装。（理论上所有项目规范一般都是统一的，也支持自定义配置插件的配置文件）
+仅依赖 Node.js，跨平台（Windows/macOS）与主流前端技术栈通用：Vue / React / Angular / Vite / Webpack / Rollup 等。
 
 ## 视频教程
 
-http://media.leaiv.cn/baize-pre/video.html
+（暂无）
 
-## 优势
+## 特性与优势
 
-- 侵入成本小，新项目一键搞定，无心智负担
-- 渐进式命令init和install，无论新老项目皆可以
-- 自定义配置，多种场景多种命令匹配
-- 体积小，脚手架所有源码不到 100k
-- 不关心平台和前端框架，只要有node，几乎支持配置前端所有框架的项目规范
+- 低侵入：对存量项目改动小，可按需选择启用项
+- 开箱即用：默认配置即合理，亦支持自定义
+- 渐进式：`init` 与 `install` 命令覆盖新老项目场景
+- 体积小：源码 < 100k，安装运行轻量
+- 跨框架：不绑定具体框架，只要有 Node.js 即可使用
 
-## 功能实现
+## 安装
 
-- init: Choose and install multiple plugins, and configure them according to your Node.js version.
-- install: Install and configure some plugins compatible with your Node.js version.
-- uninstall: Uninstall some plugins and remove their configuration settings that are related to your Node.js version.
-- all: Quickly install all plugins and configure them with your Node.js version.
-- config: Configure the CLI variable. Once configured, use it everywhere.
-- -h: View help.
-- -V: View current version.
+全局安装（推荐）：
 
-## 依赖插件
+```bash
+npm i -g baize-pre
+# 或者
+pnpm add -g baize-pre
+```
 
-- commander: 参数解析
-- inquirer: 选项交互式工具，有它就可以实现命令行的选项
-- chalk: 粉笔帮我们在控制台画出各种各样的颜色
-- readline-sync：询问式交互工具
+项目本地安装：
 
-## 期望
+```bash
+pnpm add -D baize-pre
+```
 
-- 寻找更多有志之士，邮箱:1795691637@qq.com
-- 喜欢点个star吧～
+安装后可通过 `baize` 命令使用。
+
+## 快速开始
+
+在一个已存在的项目中渐进接入：
+
+```bash
+baize init
+# 交互式选择并安装需要的插件（Prettier / Husky / TypeScript 等）
+```
+
+新项目一键规范化：
+
+```bash
+mkdir my-app && cd my-app
+baize all
+# 一次性安装并写入所有内置插件与配置
+```
+
+从官方模板创建新项目：
+
+```bash
+baize template
+# 选择模板分支 → 输入项目名 → 自动克隆、改名并清理 .git
+```
+
+## 命令说明
+
+- `baize init`：交互式选择并安装多个插件，按当前 Node.js 版本适配配置。
+- `baize install <plugin...>`：安装并配置指定插件（若名称不匹配会给出可选列表）。
+- `baize uninstall <plugin...>`：卸载指定插件并移除对应配置。
+- `baize all`：一键安装所有内置插件（默认包含 Prettier、Husky、TypeScript）。
+- `baize config get|set <default|plugin...>`：读取或设置 CLI 变量/插件配置，支持 `default`。
+- `baize template`：选择 `baizeteam/baize-template` 分支，克隆模板、改名并删除 `.git`。
+- `baize -h`：查看帮助；`baize -V`：查看当前版本。
+
+## 常见用法示例
+
+```bash
+# 安装指定插件
+baize install prettier husky
+
+# 卸载指定插件
+baize uninstall husky
+
+# 查看/设置默认配置（示例）
+baize config get default
+baize config set default
+```
+
+## 依赖与技术栈
+
+- commander：命令与参数解析
+- inquirer / readline-sync：交互式命令行
+- chalk：命令行高亮输出
+- simple-git / @octokit/rest：模板仓库克隆与分支查询
+
+## 兼容性
+
+- 仅需 Node.js 环境
+- Windows / macOS 均可
+- 可用于 Vue / React / Angular / Vite / Webpack / Rollup 等项目
+
+## 期望与反馈
+
+- 欢迎提出建议或参与共建，邮箱：1795691637@qq.com
+- 如果对你有帮助，欢迎点个 Star～
 
 ## TODO
 
-- 搜寻意见，是需要做“一个项目选择一次包管理工具”，还是“该项目每次安装都需要询问包管理工具”。
-- 使用TS重构(并配置alias路径)
+- 关于包管理器的使用策略：是“项目内仅选择一次”，还是“每次安装均询问”？
+- 继续完善 TS 重构与别名路径配置
+
