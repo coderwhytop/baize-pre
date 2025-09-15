@@ -138,6 +138,7 @@ export class PluginService implements PluginInstance {
         pkgInject: {
           devDependencies: {
             eslint: "^8.42.0",
+            "@eslint/js": "^9.0.0",
             "@typescript-eslint/parser": "^6.0.0",
             "@typescript-eslint/eslint-plugin": "^6.0.0",
             "eslint-config-prettier": "^9.0.0",
