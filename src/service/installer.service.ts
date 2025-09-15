@@ -18,8 +18,8 @@ import { InstallerInstance } from "@/instance/installer.instance";
 
 class InstallerService implements InstallerInstance {
   private userPkg: PackageInstance;
-  private managerName: TYPE_MANAGER_NAME;
-  private pluginService: PluginService;
+  private managerName!: TYPE_MANAGER_NAME;
+  private pluginService!: PluginService;
   private readonly loggerService: LoggerInstance = loggerService;
   private readonly toolService: ToolInstance = toolService;
   private readonly nodeService: NodeInstance = nodeService;
@@ -35,8 +35,8 @@ class InstallerService implements InstallerInstance {
         type: "list",
         name: questionKey,
         message: "Which package manager to use?",
-        choices: MANAGER_LIST
-      }
+        choices: MANAGER_LIST,
+      },
     ];
     const answer = await inquirer.prompt(question);
     const result = answer[questionKey];
@@ -51,7 +51,11 @@ class InstallerService implements InstallerInstance {
       this.managerName = result;
     }
   }
-  async #handleInstall(pluginName: string, dev = false, version = null) {
+  async #handleInstall(
+    pluginName: string,
+    dev: boolean = false,
+    version: number | null = null
+  ) {
     /** 必须在install前刷新一遍pkg的info,避免npm 安装时写入和我们的写入顺序冲掉了 */
     this.userPkg.get();
     const { managerName } = this;
@@ -82,33 +86,38 @@ class InstallerService implements InstallerInstance {
     for (let item of plugins) {
       const { name, config, pkgInject } = item;
       const pluginName = name;
-      this.#handleUninstall(pluginName)
+      await this.#handleUninstall(pluginName)
         .then(async () => {
           // 移除配置项
-          const { file } = config;
-          const filepath = join(this.userPkg.curDir, file);
-          if (!fsExtra.existsSync(filepath))
-            return this.loggerService.error('"Error config path: ' + filepath);
-          // 删除配置文件
+          const files: string[] = Array.isArray(config)
+            ? config.map((c: any) => c.file)
+            : [config.file];
           if (pluginName === "husky") {
-            const filepath = join(this.userPkg.curDir, ".husky");
-            fsExtra.removeSync(filepath);
+            const huskyDir = join(this.userPkg.curDir, ".husky");
+            if (fsExtra.existsSync(huskyDir)) fsExtra.removeSync(huskyDir);
           } else {
-            fsExtra.removeSync(filepath);
+            files.forEach(f => {
+              const filepath = join(this.userPkg.curDir, f);
+              if (fsExtra.existsSync(filepath)) fsExtra.removeSync(filepath);
+            });
           }
 
           // 删除包信息配置
           let info = this.userPkg.get();
-          for (let pkgKey in pkgInject) {
+          for (let pkgKey in pkgInject as Record<string, any>) {
             if (info[pkgKey]) {
               const SCRIPTS = this.userPkg.script;
               // console.log(tool.isObject(pkgInject[pkgKey]), pkgKey, pkgInject, 'isObject')
               if (
                 pkgKey === SCRIPTS &&
-                this.toolService.isObject(pkgInject[SCRIPTS])
+                this.toolService.isObject(
+                  (pkgInject as Record<string, any>)[SCRIPTS]
+                )
               ) {
                 // 此时pkg[pkgKey] 等同于 pkgInject[SCRIPTS] 但后者语义好
-                for (let scriptKey in pkgInject[SCRIPTS]) {
+                for (let scriptKey in (pkgInject as Record<string, any>)[
+                  SCRIPTS
+                ]) {
                   // SCRIPTS 里有这个键
                   if (info[SCRIPTS].hasOwnProperty(scriptKey)) {
                     // console.log('SCRIPTS 里有这个键', scriptKey, info[SCRIPTS])
@@ -129,13 +138,13 @@ class InstallerService implements InstallerInstance {
             }
           }
         })
-        .catch((e) => {
+        .catch(e => {
           console.log(e); // 承接上一行错误，但不要颜色打印
         });
     }
   }
 
-  #handleUninstall(pkgName) {
+  #handleUninstall(pkgName: string) {
     return new Promise((resolve, reject) => {
       this.userPkg.get();
       const { managerName } = this;
@@ -158,30 +167,85 @@ class InstallerService implements InstallerInstance {
       }
     });
   }
-  #handleConfig(config) {
+  #handleConfig(
+    config: { file: string; json: any } | Array<{ file: string; json: any }>
+  ) {
     this.userPkg.get();
-    const filepath = join(this.userPkg.curDir, config.file);
-    // console.log(config, "有注入配置", filepath)
-    try {
-      const { json } = config;
-      if (typeof json === "object")
-        this.toolService.writeJSONFileSync(filepath, json);
-      else fsExtra.writeFileSync(filepath, json);
-    } catch (e) {
-      // console.log(filepath,'失败 filepath')
-      // 内部错误
-      return this.loggerService.error(
-        "Internal Error: Configuration injection failed in handleConfig."
-      );
-    }
+    const writeOne = (conf: { file: string; json: any }) => {
+      const filepath = join(this.userPkg.curDir, conf.file);
+      try {
+        const { json } = conf;
+        if (typeof json === "object")
+          this.toolService.writeJSONFileSync(filepath, json);
+        else fsExtra.writeFileSync(filepath, json);
+      } catch (e) {
+        return this.loggerService.error(
+          "Internal Error: Configuration injection failed in handleConfig."
+        );
+      }
+    };
+    Array.isArray(config) ? config.forEach(writeOne) : writeOne(config);
   }
-  #updatePackage(pkgInject) {
+  #updatePackage(pkgInject: Record<string, any>) {
     this.userPkg.get();
     // console.log(pkgInject, "有注入命令")
     for (let key in pkgInject) {
       // 更新用户json
       this.userPkg.update(key, pkgInject[key]);
     }
+  }
+
+  #mergeArrayUnique(target: string[] = [], more: string[] = []): string[] {
+    const set = new Set([...(target || []), ...(more || [])]);
+    return Array.from(set);
+  }
+
+  async #finalizeLintStaged(plugins: TYPE_PLUGIN_ITEM[]) {
+    // 根据已安装插件，合并 lint-staged 配置，不覆盖已有命令
+    const pkg = this.userPkg.get();
+    const hasPrettier = Boolean(
+      pkg.devDependencies?.prettier || pkg.dependencies?.prettier
+    );
+    const hasESLint = Boolean(
+      pkg.devDependencies?.eslint || pkg.dependencies?.eslint
+    );
+    const hasTypeScript = Boolean(
+      pkg.devDependencies?.typescript || pkg.dependencies?.typescript
+    );
+
+    const lsKey = "lint-staged";
+    const cur = (pkg as any)[lsKey] || {};
+    const codeFiles = "*.{js,ts,vue,jsx,tsx,html}";
+    const textFiles = "*.{json,md,yml,yaml}";
+
+    const codeCmds: string[] = Array.isArray(cur[codeFiles])
+      ? cur[codeFiles]
+      : [];
+    const textCmds: string[] = Array.isArray(cur[textFiles])
+      ? cur[textFiles]
+      : [];
+
+    if (hasPrettier) {
+      // 保证 prettier --write 存在
+      cur[codeFiles] = this.#mergeArrayUnique(codeCmds, ["prettier --write"]);
+      cur[textFiles] = this.#mergeArrayUnique(textCmds, ["prettier --write"]);
+    }
+    if (hasESLint) {
+      // 保证 eslint --fix 存在
+      const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
+      cur[codeFiles] = this.#mergeArrayUnique(after, ["eslint --fix"]);
+    }
+    if (hasTypeScript) {
+      const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
+      // 提供类型检查脚本的占位，若用户已有则不会重复
+      cur[codeFiles] = this.#mergeArrayUnique(after, [
+        "node scripts/type-check.js",
+      ]);
+    }
+
+    // 写回 pkg
+    (pkg as any)[lsKey] = cur;
+    this.userPkg.update(lsKey, cur);
   }
 
   #checkGit() {
@@ -224,6 +288,7 @@ class InstallerService implements InstallerInstance {
       // // 有需要write的config文件
       config && this.#handleConfig(config);
     }
+    await this.#finalizeLintStaged(plugins);
   }
   async choose() {
     const questionKey = "plugins";
@@ -235,17 +300,17 @@ class InstallerService implements InstallerInstance {
         name: questionKey,
         message: "Choose the plugins you want to install.",
         choices: storagePlugins,
-        validate(answers) {
+        validate(answers: any) {
           if (!answers.length) return "You must choose at least one plugin.";
           return true;
-        }
-      }
+        },
+      },
     ];
     const answers = await inquirer.prompt(question);
     this.pluginService = new PluginService(false);
     const matInstalls = this.pluginService
       .get()
-      .filter((item) => answers[questionKey].includes(item.name));
+      .filter(item => answers[questionKey].includes(item.name));
     await this.install(matInstalls);
   }
 }

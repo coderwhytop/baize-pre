@@ -17,4 +17,5 @@ export type TYPE_PACKAGE_INFO = {
     [devDependencyName: string]: string;
   };
   // 这里可以继续添加其他你认为重要的属性
+  [k: string]: any;
 };

@@ -6,10 +6,11 @@ import { CommandInstance } from "@/instance/command.instance";
 class LoggerService implements LoggerInstance {
   private readonly commandService: CommandInstance = commandService;
   private colorize(type: string, s: string, bold: boolean): string {
-    let color = "yellow";
+    let color: "yellow" | "green" | "red" = "yellow";
     if (type === "success") color = "green";
     else if (type === "error") color = "red";
-    return bold ? chalk.bold[color](s) : chalk[color](s);
+    const c: any = chalk;
+    return bold ? c.bold[color](s) : c[color](s);
   }
 
   success(s: string, bold: boolean = false): void {

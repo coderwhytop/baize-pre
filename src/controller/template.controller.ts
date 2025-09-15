@@ -28,14 +28,14 @@ export class TemplateController {
   }
 
   // 选择分支
-  async selectBranch(branches) {
+  async selectBranch(branches: string[]) {
     const branchAnswer = await inquirer.prompt([
       {
         type: "list",
         name: "branch",
         message: "请选择一个分支：",
-        choices: branches
-      }
+        choices: branches,
+      },
     ]);
     return branchAnswer.branch;
   }
@@ -47,8 +47,9 @@ export class TemplateController {
         type: "input",
         name: "projectName",
         message: "请输入项目名称：",
-        validate: (input) => (input.trim() ? true : "项目名称不能为空！")
-      }
+        validate: (input: string) =>
+          input.trim() ? true : "项目名称不能为空！",
+      },
     ]);
     return projectNameAnswer.projectName;
   }
@@ -58,9 +59,11 @@ export class TemplateController {
     try {
       const response = await this.octokit.repos.listBranches({
         owner: this.owner,
-        repo: this.repo
+        repo: this.repo,
       });
-      return response.data.map((branch) => branch.name).filter(item=>item!=="master");
+      return response.data
+        .map(branch => branch.name)
+        .filter(item => item !== "master");
     } catch (error) {
       console.error("Error fetching branches:", error);
     }

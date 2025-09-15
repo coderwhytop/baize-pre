@@ -6,7 +6,6 @@ import { InitController } from "@/controller/init.controller";
 import { InstallController } from "@/controller/install.controller";
 import { UninstallController } from "@/controller/uninstall.controller";
 import { AllController } from "@/controller/all.controller";
-import { ConfigController } from "@/controller/config.controller";
 import { TemplateController } from "@/controller/template.controller";
 
 export class MainModule {
@@ -18,8 +17,7 @@ export class MainModule {
       InitController,
       AllController,
       UninstallController,
-      ConfigController,
-      TemplateController
+      TemplateController,
     ];
   }
 }

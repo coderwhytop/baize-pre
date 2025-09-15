@@ -8,51 +8,44 @@ class CommandService implements CommandInstance {
   public readonly subs;
   constructor() {
     this.packageService = new PackageService(false);
-    this.main = Object.keys(this.packageService.get().bin)[0] + " ";
+    const pkgInfo = this.packageService.get();
+    const binKeys = pkgInfo.bin ? Object.keys(pkgInfo.bin) : [];
+    this.main = (binKeys[0] || "baize") + " ";
     this.subs = {
       init: {
         alias: "",
         description:
           "Choose and install multiple plugins, and configure them according to your Node.js version.",
-        examples: [this.main + "init"]
+        examples: [this.main + "init"],
       },
       install: {
         alias: "i",
         description:
           "Install and configure some plugins compatible with your Node.js version.",
-        examples: [this.main + "i <plugin-name>"]
+        examples: [this.main + "i <plugin-name>"],
       },
       uninstall: {
         alias: "",
         description:
           "Uninstall some plugins and remove their configuration settings that are related to your Node.js version.",
-        examples: []
+        examples: [],
       },
       template: {
         alias: "t",
         description: "Create a new project with a template.",
-        examples: [this.main + "template"]
+        examples: [this.main + "template"],
       },
       all: {
         alias: "a",
         description:
           "Quickly install all plugins and configure them with your Node.js version.",
-        examples: [this.main + "all"]
-      },
-      config: {
-        alias: "conf",
-        description:
-          "Configure the CLI variable. Once configured, use it everywhere.",
-        examples: [
-          this.main + "config set <k> <v>",
-          this.main + "config get <k>"
-        ]
+        examples: [this.main + "all"],
       },
       "*": {
         alias: "",
         description: "Command not found.",
-        examples: []
-      }
+        examples: [],
+      },
     };
   }
 }

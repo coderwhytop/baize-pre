@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Generated files
+*.min.js
+*.min.css
+
+# Config files
+*.config.js
+*.config.mjs
+*.config.ts
+
+# Test files (if you have them)
+tests/
+__tests__/
+
+# Documentation
+docs/
+*.md
+
+# Environment files
+.env*
+
+src/shims-vue.d.ts
+

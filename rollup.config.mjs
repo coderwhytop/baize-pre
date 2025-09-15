@@ -1,6 +1,7 @@
 import resolve from "@rollup/plugin-node-resolve"
 import commonjs from "@rollup/plugin-commonjs"
 import typescript from "rollup-plugin-typescript2"
+import copy from "rollup-plugin-copy"
 import alias from "@rollup/plugin-alias"
 import path from "path"
 import { fileURLToPath } from "url"
@@ -31,7 +32,14 @@ export default [
       }),
       resolve(),
       commonjs(),
-      typescript({ tsconfig: "./tsconfig.json", useTsconfigDeclarationDir: true })
+      typescript({ tsconfig: "./tsconfig.json", useTsconfigDeclarationDir: true }),
+      copy({
+        targets: [
+          { src: "store.default.json", dest: "dist" },
+          { src: "store.user.json", dest: "dist" },
+          { src: "README.md", dest: "dist" }
+        ]
+      })
     ],
     external: [
       "@octokit/rest",
