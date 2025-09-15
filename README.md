@@ -106,8 +106,37 @@ baize config set default
 - 欢迎提出建议或参与共建，邮箱：1795691637@qq.com
 - 如果对你有帮助，欢迎点个 Star～
 
+## 更新日志
+
+### v0.3.0 (2024-01-15)
+
+#### 🎉 新功能
+
+- **智能 lint-staged 配置**：根据已安装插件动态生成 `lint-staged` 配置，避免空配置导致的 git hook 错误
+- **灵活的代码检查方式**：
+  - 安装 husky → 自动配置 `lint-staged`，提交时自动运行代码检查
+  - 不安装 husky → 在 `package.json` 的 `scripts` 中添加手动命令（如 `npm run format`、`npm run lint`）
+
+#### 🔧 修复
+
+- **修复依赖合并问题**：`devDependencies` 和 `dependencies` 现在正确合并而不是覆盖
+- **修复 ESLint v9 兼容性**：迁移到新的 flat 配置格式（`eslint.config.js`）
+- **修复 TypeScript 类型错误**：添加正确的类型断言和索引签名
+- **修复 Husky v9 废弃警告**：更新 git hooks 配置
+
+#### 🚀 优化
+
+- **简化构建配置**：移除不再需要的 `template` 目录和 `store` 文件
+- **动态插件检测**：插件系统现在直接从项目根目录读取配置文件，无需外部模板
+- **更好的错误处理**：改进了安装过程中的错误提示和异常处理
+
+#### 📝 技术改进
+
+- 重构 `PluginService` 从项目自身配置文件读取，而非硬编码模板
+- 优化 `InstallerService` 的 `#finalizeLintStaged` 方法，支持智能配置合并
+- 更新 `PackageService` 的依赖合并逻辑，避免配置丢失
+
 ## TODO
 
-- 关于包管理器的使用策略：是“项目内仅选择一次”，还是“每次安装均询问”？
+- 关于包管理器的使用策略：是"项目内仅选择一次"，还是"每次安装均询问"？
 - 继续完善 TS 重构与别名路径配置
-

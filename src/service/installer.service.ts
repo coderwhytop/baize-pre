@@ -212,40 +212,64 @@ class InstallerService implements InstallerInstance {
     const hasTypeScript = Boolean(
       pkg.devDependencies?.typescript || pkg.dependencies?.typescript
     );
+    const hasHusky = Boolean(
+      pkg.devDependencies?.husky || pkg.dependencies?.husky
+    );
 
-    const lsKey = "lint-staged";
-    const cur = (pkg as Record<string, any>)[lsKey] || {};
-    const codeFiles = "*.{js,ts,vue,jsx,tsx,html}";
-    const textFiles = "*.{json,md,yml,yaml}";
+    // 如果安装了 husky，配置 lint-staged
+    if (hasHusky) {
+      const lsKey = "lint-staged";
+      const cur = (pkg as Record<string, any>)[lsKey] || {};
+      const codeFiles = "*.{js,ts,vue,jsx,tsx,html}";
+      const textFiles = "*.{json,md,yml,yaml}";
 
-    const codeCmds: string[] = Array.isArray(cur[codeFiles])
-      ? cur[codeFiles]
-      : [];
-    const textCmds: string[] = Array.isArray(cur[textFiles])
-      ? cur[textFiles]
-      : [];
+      const codeCmds: string[] = Array.isArray(cur[codeFiles])
+        ? cur[codeFiles]
+        : [];
+      const textCmds: string[] = Array.isArray(cur[textFiles])
+        ? cur[textFiles]
+        : [];
 
-    if (hasPrettier) {
-      // 保证 prettier --write 存在
-      cur[codeFiles] = this.#mergeArrayUnique(codeCmds, ["prettier --write"]);
-      cur[textFiles] = this.#mergeArrayUnique(textCmds, ["prettier --write"]);
+      if (hasPrettier) {
+        // 保证 prettier --write 存在
+        cur[codeFiles] = this.#mergeArrayUnique(codeCmds, ["prettier --write"]);
+        cur[textFiles] = this.#mergeArrayUnique(textCmds, ["prettier --write"]);
+      }
+      if (hasESLint) {
+        // 保证 eslint --fix 存在
+        const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
+        cur[codeFiles] = this.#mergeArrayUnique(after, ["eslint --fix"]);
+      }
+      if (hasTypeScript) {
+        const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
+        // 提供类型检查脚本的占位，若用户已有则不会重复
+        cur[codeFiles] = this.#mergeArrayUnique(after, [
+          "node scripts/type-check.js",
+        ]);
+      }
+
+      // 写回 pkg
+      (pkg as Record<string, any>)[lsKey] = cur;
+      this.userPkg.update(lsKey, cur);
+    } else {
+      // 如果没有安装 husky，在 scripts 中添加对应的脚本命令
+      const scripts = pkg.scripts || {};
+
+      if (hasPrettier) {
+        scripts.format = "prettier --write .";
+      }
+      if (hasESLint) {
+        scripts.lint = "eslint . --ext .ts,.tsx,.js";
+      }
+      if (hasTypeScript) {
+        scripts.typecheck = "tsc --noEmit";
+      }
+
+      // 更新 scripts
+      if (Object.keys(scripts).length > 0) {
+        this.userPkg.update("scripts", scripts);
+      }
     }
-    if (hasESLint) {
-      // 保证 eslint --fix 存在
-      const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
-      cur[codeFiles] = this.#mergeArrayUnique(after, ["eslint --fix"]);
-    }
-    if (hasTypeScript) {
-      const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
-      // 提供类型检查脚本的占位，若用户已有则不会重复
-      cur[codeFiles] = this.#mergeArrayUnique(after, [
-        "node scripts/type-check.js",
-      ]);
-    }
-
-    // 写回 pkg
-    (pkg as any)[lsKey] = cur;
-    this.userPkg.update(lsKey, cur);
   }
 
   #checkGit() {
@@ -288,7 +312,7 @@ class InstallerService implements InstallerInstance {
       // // 有需要write的config文件
       config && this.#handleConfig(config);
     }
-    await this.#finalizeLintStaged(plugins);
+    await this.#finalizeLintStaged();
   }
   async choose() {
     const questionKey = "plugins";

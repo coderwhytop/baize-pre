@@ -1,6 +1,6 @@
 {
   "name": "baize-pre",
-  "version": "0.2.9",
+  "version": "0.3.3",
   "description": "A useful progressive front-end normalization tool.",
   "bin": {
     "baize": "dist/cli.cjs"
@@ -8,7 +8,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/baizeteam/baize-pre"
+    "url": "git+https://github.com/baizeteam/baize-pre.git"
   },
   "keywords": [
     "front-end",
@@ -26,7 +26,7 @@
   "scripts": {
     "build": "rimraf dist && rollup -c rollup.config.mjs",
     "build:watch": "rollup -c rollup.config.mjs -w",
-    "build:publish": "node scripts/bump-version.js && npm run build",
+    "build:publish": "npm run build && node scripts/bump-version.js",
     "dev": "nodemon --watch dist --exec node dist/index.cjs",
     "start": "npm run build:watch",
     "prepublishOnly": "npm run build:publish",

@@ -22,7 +22,7 @@ export class PackageService implements PackageInstance {
     const defaultInfo: TYPE_PACKAGE_INFO = {
       scripts: {},
       devDependencies: {},
-      dependencies: {}
+      dependencies: {},
     };
     let info;
     if (fsExtra.existsSync(this.curPath)) {
@@ -75,6 +75,12 @@ export class PackageService implements PackageInstance {
     const info = this.get();
     if (key === this.script) {
       info[this.script] = { ...info[this.script], ...content };
+    } else if (key === "devDependencies" || key === "dependencies") {
+      // 合并依赖，而不是覆盖
+      info[key] = {
+        ...(info[key] as Record<string, string>),
+        ...(content as Record<string, string>),
+      };
     } else {
       info[key] = content;
     }
