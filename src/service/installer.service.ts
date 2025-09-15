@@ -178,7 +178,7 @@ class InstallerService implements InstallerInstance {
         if (typeof json === "object")
           this.toolService.writeJSONFileSync(filepath, json);
         else fsExtra.writeFileSync(filepath, json);
-      } catch (e) {
+      } catch (_) {
         return this.loggerService.error(
           "Internal Error: Configuration injection failed in handleConfig."
         );
@@ -200,7 +200,7 @@ class InstallerService implements InstallerInstance {
     return Array.from(set);
   }
 
-  async #finalizeLintStaged(plugins: TYPE_PLUGIN_ITEM[]) {
+  async #finalizeLintStaged() {
     // 根据已安装插件，合并 lint-staged 配置，不覆盖已有命令
     const pkg = this.userPkg.get();
     const hasPrettier = Boolean(
@@ -214,7 +214,7 @@ class InstallerService implements InstallerInstance {
     );
 
     const lsKey = "lint-staged";
-    const cur = (pkg as any)[lsKey] || {};
+    const cur = (pkg as Record<string, any>)[lsKey] || {};
     const codeFiles = "*.{js,ts,vue,jsx,tsx,html}";
     const textFiles = "*.{json,md,yml,yaml}";
 

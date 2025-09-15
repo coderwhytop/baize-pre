@@ -81,6 +81,13 @@
     "testEnvironment": "node"
   },
   "lint-staged": {
-    "**/*.{js,ts,json}": "prettier --write ."
+    "*.{js,ts,vue,jsx,tsx}": [
+      "prettier --write",
+      "eslint --fix",
+      "node scripts/type-check.js"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

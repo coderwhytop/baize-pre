@@ -3,14 +3,14 @@ import { execSync } from "child_process";
 import { ToolInstance } from "@/instance/tool.instance";
 
 class ToolService implements ToolInstance {
-  isObject(obj: any): boolean {
+  isObject(obj: object): boolean {
     return Object.prototype.toString.call(obj) === "[object Object]";
   }
 
-  formatJSON(content: any) {
+  formatJSON(content: object) {
     return JSON.stringify(content, null, 2);
   }
-  writeJSONFileSync(path: string, content: any): void {
+  writeJSONFileSync(path: string, content: object): void {
     fsExtra.writeFileSync(path, this.formatJSON(content));
   }
 
