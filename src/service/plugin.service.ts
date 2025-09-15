@@ -7,25 +7,25 @@ import { COMMITLINT, ESLINT, HUSKY, PRETTIER, TS } from "@/const/plugin.const";
 
 export class PluginService implements PluginInstance {
   public readonly normalKey = "installs";
-  private readTemplate(relativePath: string): string {
-    const full = path.join(nodeService.root, "template", relativePath);
+  private readConfig(relativePath: string): string {
+    const full = path.join(nodeService.root, relativePath);
     if (!fsExtra.existsSync(full)) return "";
     return fsExtra.readFileSync(full, "utf-8");
   }
-  private readTemplateFirst(candidates: string[]): {
+  private readConfigFirst(candidates: string[]): {
     filename: string | null;
     content: string;
   } {
     for (const name of candidates) {
-      const content = this.readTemplate(name);
+      const content = this.readConfig(name);
       if (content) return { filename: name, content };
     }
     return { filename: null, content: "" };
   }
 
-  // 提供内置插件定义，直接从 template 读取需要的配置文件
+  // 提供内置插件定义，直接从项目根目录读取需要的配置文件
   private getBuiltinPlugins(): TYPE_PLUGIN_ITEM[] {
-    const prettierTpl = this.readTemplateFirst([
+    const prettierTpl = this.readConfigFirst([
       ".prettierrc",
       "prettier.config.mjs",
       "prettier.config.cjs",
@@ -43,7 +43,7 @@ export class PluginService implements PluginInstance {
         2
       );
 
-    const tsTpl = this.readTemplateFirst(["tsconfig.json"]);
+    const tsTpl = this.readConfigFirst(["tsconfig.json"]);
     const tsconfig =
       tsTpl.content ||
       JSON.stringify(
@@ -70,18 +70,20 @@ export class PluginService implements PluginInstance {
       '#!/usr/bin/env sh\n. "$(dirname -- "$0")/_/husky.sh"\n\nnpx --no-install commitlint --edit $1\n';
 
     const commitlintConfig =
-      this.readTemplate("commitlint.config.js") ||
+      this.readConfig("commitlint.config.cjs") ||
+      this.readConfig("commitlint.config.js") ||
       "module.exports = {extends: ['@commitlint/config-conventional']};\n";
     const lintStagedConfig =
-      this.readTemplate("lint-staged.config.mjs") ||
+      this.readConfig("lint-staged.config.mjs") ||
+      this.readConfig("lint-staged.config.js") ||
       "export default { '**/*.{js,ts,tsx,jsx,css,scss,md,json}': 'prettier --write' }\n";
 
-    // ESLint: 优先读取 template 下的配置文件，按命名优先级选择
-    const eslintTpl = this.readTemplateFirst([
-      "eslint.js",
-      "eslint.cjs",
+    // ESLint: 优先读取项目根目录下的配置文件，按命名优先级选择
+    const eslintTpl = this.readConfigFirst([
       "eslint.config.js",
       "eslint.config.cjs",
+      "eslint.js",
+      "eslint.cjs",
       ".eslintrc.js",
       ".eslintrc.cjs",
       ".eslintrc.json",
@@ -89,11 +91,17 @@ export class PluginService implements PluginInstance {
     const eslintFile = eslintTpl.filename;
     const eslintContent = eslintTpl.content;
 
-    // 动态启用：仅当 template 中存在对应文件时，才注入该插件
+    // 动态启用：仅当项目根目录中存在对应文件时，才注入该插件
     const hasPrettier = Boolean(prettierTpl.filename);
     const hasTs = Boolean(tsTpl.filename);
-    const hasCommitlint = Boolean(this.readTemplate("commitlint.config.js"));
-    const hasLintStaged = Boolean(this.readTemplate("lint-staged.config.mjs"));
+    const hasCommitlint = Boolean(
+      this.readConfig("commitlint.config.cjs") ||
+        this.readConfig("commitlint.config.js")
+    );
+    const hasLintStaged = Boolean(
+      this.readConfig("lint-staged.config.mjs") ||
+        this.readConfig("lint-staged.config.js")
+    );
     const hasEslint = Boolean(eslintFile);
 
     const plugins: TYPE_PLUGIN_ITEM[] = [];

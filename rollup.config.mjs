@@ -35,8 +35,6 @@ export default [
       typescript({ tsconfig: "./tsconfig.json", useTsconfigDeclarationDir: true }),
       copy({
         targets: [
-          { src: "store.default.json", dest: "dist" },
-          { src: "store.user.json", dest: "dist" },
           { src: "README.md", dest: "dist" }
         ]
       })
