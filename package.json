@@ -1,6 +1,6 @@
 {
   "name": "baize-pre",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "A useful progressive front-end normalization tool.",
   "bin": {
     "baize": "dist/cli.cjs"
@@ -54,7 +54,10 @@
     "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.9",
     "@types/node": "^24.4.0",
+    "@types/readline-sync": "^1.4.8",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
     "eslint-define-config": "^2.1.0",
@@ -82,12 +85,12 @@
   },
   "lint-staged": {
     "*.{js,ts,vue,jsx,tsx}": [
-      "prettier --write",
-      "eslint --fix",
+      "npx prettier --write",
+      "npx eslint --fix",
       "node scripts/type-check.js"
     ],
     "*.{json,md,yml,yaml}": [
-      "prettier --write"
+      "npx prettier --write"
     ]
   }
 }

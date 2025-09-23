@@ -161,9 +161,19 @@ class InstallerService implements InstallerInstance {
           "Uninstalled " + pkgName + " successfully. "
         );
         resolve(true);
-      } catch (e) {
-        this.loggerService.error("Error: uninstall " + pkgName + " : ");
-        reject(e);
+      } catch (e: any) {
+        // 检查是否是包不存在的错误
+        if (
+          e.message &&
+          e.message.includes("Cannot remove") &&
+          e.message.includes("project has no dependencies")
+        ) {
+          this.loggerService.warn(pkgName + " is not installed, skipping...");
+          resolve(true); // 继续执行，不中断流程
+        } else {
+          this.loggerService.error("Error: uninstall " + pkgName + " : ");
+          reject(e);
+        }
       }
     });
   }
@@ -188,20 +198,36 @@ class InstallerService implements InstallerInstance {
   }
   #updatePackage(pkgInject: Record<string, any>) {
     this.userPkg.get();
-    // console.log(pkgInject, "有注入命令")
+    const pkg = this.userPkg.get();
+
     for (let key in pkgInject) {
-      // 更新用户json
-      this.userPkg.update(key, pkgInject[key]);
+      if (key === "scripts") {
+        // 对于 scripts，不覆盖现有命令
+        const existingScripts = pkg.scripts || {};
+        const newScripts = pkgInject[key];
+
+        // 只添加不存在的脚本
+        for (let scriptKey in newScripts) {
+          if (!existingScripts[scriptKey]) {
+            existingScripts[scriptKey] = newScripts[scriptKey];
+          }
+        }
+
+        this.userPkg.update(key, existingScripts);
+      } else {
+        // 其他配置直接更新
+        this.userPkg.update(key, pkgInject[key]);
+      }
     }
   }
 
-  #mergeArrayUnique(target: string[] = [], more: string[] = []): string[] {
-    const set = new Set([...(target || []), ...(more || [])]);
-    return Array.from(set);
-  }
+  // #mergeArrayUnique(target: string[] = [], more: string[] = []): string[] {
+  //   const set = new Set([...(target || []), ...(more || [])]);
+  //   return Array.from(set);
+  // }
 
   async #finalizeLintStaged() {
-    // 根据已安装插件，合并 lint-staged 配置，不覆盖已有命令
+    // 根据已安装插件，配置 lint-staged，可以覆盖现有命令
     const pkg = this.userPkg.get();
     const hasPrettier = Boolean(
       pkg.devDependencies?.prettier || pkg.dependencies?.prettier
@@ -216,52 +242,48 @@ class InstallerService implements InstallerInstance {
       pkg.devDependencies?.husky || pkg.dependencies?.husky
     );
 
-    // 如果安装了 husky，配置 lint-staged
+    // 如果安装了 husky，配置 lint-staged（可以覆盖现有配置）
     if (hasHusky) {
       const lsKey = "lint-staged";
-      const cur = (pkg as Record<string, any>)[lsKey] || {};
-      const codeFiles = "*.{js,ts,vue,jsx,tsx,html}";
+      const codeFiles = "*.{js,ts,vue,jsx,tsx}";
       const textFiles = "*.{json,md,yml,yaml}";
 
-      const codeCmds: string[] = Array.isArray(cur[codeFiles])
-        ? cur[codeFiles]
-        : [];
-      const textCmds: string[] = Array.isArray(cur[textFiles])
-        ? cur[textFiles]
-        : [];
+      const lintStagedConfig: Record<string, string[]> = {};
 
       if (hasPrettier) {
-        // 保证 prettier --write 存在
-        cur[codeFiles] = this.#mergeArrayUnique(codeCmds, ["prettier --write"]);
-        cur[textFiles] = this.#mergeArrayUnique(textCmds, ["prettier --write"]);
-      }
-      if (hasESLint) {
-        // 保证 eslint --fix 存在
-        const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
-        cur[codeFiles] = this.#mergeArrayUnique(after, ["eslint --fix"]);
-      }
-      if (hasTypeScript) {
-        const after = Array.isArray(cur[codeFiles]) ? cur[codeFiles] : [];
-        // 提供类型检查脚本的占位，若用户已有则不会重复
-        cur[codeFiles] = this.#mergeArrayUnique(after, [
-          "node scripts/type-check.js",
-        ]);
+        lintStagedConfig[codeFiles] = ["prettier --write"];
+        lintStagedConfig[textFiles] = ["prettier --write"];
       }
 
-      // 写回 pkg
-      (pkg as Record<string, any>)[lsKey] = cur;
-      this.userPkg.update(lsKey, cur);
+      if (hasESLint) {
+        if (lintStagedConfig[codeFiles]) {
+          lintStagedConfig[codeFiles].unshift("eslint --fix");
+        } else {
+          lintStagedConfig[codeFiles] = ["eslint --fix"];
+        }
+      }
+
+      if (hasTypeScript) {
+        if (lintStagedConfig[codeFiles]) {
+          lintStagedConfig[codeFiles].push("tsc --noEmit");
+        } else {
+          lintStagedConfig[codeFiles] = ["tsc --noEmit"];
+        }
+      }
+
+      // 直接覆盖 lint-staged 配置
+      this.userPkg.update(lsKey, lintStagedConfig);
     } else {
-      // 如果没有安装 husky，在 scripts 中添加对应的脚本命令
+      // 如果没有安装 husky，在 scripts 中添加对应的脚本命令（不覆盖现有命令）
       const scripts = pkg.scripts || {};
 
-      if (hasPrettier) {
+      if (hasPrettier && !scripts.format) {
         scripts.format = "prettier --write .";
       }
-      if (hasESLint) {
-        scripts.lint = "eslint . --ext .ts,.tsx,.js";
+      if (hasESLint && !scripts.lint) {
+        scripts.lint = "eslint . --ext .ts,.tsx,.js --fix";
       }
-      if (hasTypeScript) {
+      if (hasTypeScript && !scripts.typecheck) {
         scripts.typecheck = "tsc --noEmit";
       }
 
@@ -275,22 +297,56 @@ class InstallerService implements InstallerInstance {
   #checkGit() {
     this.userPkg.get();
     const gitPath = join(this.userPkg.curDir, ".git");
-    // console.log(gitPath,'gitPath')
     if (!fsExtra.existsSync(gitPath)) {
-      //  最好用 'dev' 作为默认分支名
-      //  master就算不是默认分支时，都是不可删的
-      this.toolService.execSync("git init -b dev");
-      // 更改git默认不区分大小写的配置
-      // 如果A文件已提交远程，再改为小写的a文件，引用a文件会出现本地正确、远程错误，因为远程还是大A文件)
-      this.toolService.execSync("git config core.ignorecase false");
+      // 询问用户是否创建 git
+      const question = [
+        {
+          type: "confirm",
+          name: "createGit",
+          message: "No git repository found. Do you want to create one?",
+          default: true,
+        },
+      ];
+
+      return inquirer.prompt(question).then((answer: any) => {
+        if (answer.createGit) {
+          this.toolService.execSync("git init -b dev");
+          this.toolService.execSync("git config core.ignorecase false");
+          this.loggerService.success(
+            "Git repository initialized successfully."
+          );
+          return true;
+        } else {
+          this.loggerService.warn(
+            "Git repository creation cancelled. Husky requires git to work properly."
+          );
+          return false;
+        }
+      });
     }
+    return Promise.resolve(true);
   }
+
   async #checkHusky() {
-    // 这一个依赖.git
-    this.#checkGit();
-    // 如果node版本小于16，使用@8版本插件
-    this.toolService.execSync("npx " + HUSKY + " install");
-    // console.log('checkhusky')
+    // 检查 git，如果没有则询问是否创建
+    const gitReady = await this.#checkGit();
+    if (!gitReady) {
+      this.loggerService.warn(
+        "Skipping husky installation: git repository required"
+      );
+      return; // 跳过 husky 安装，不抛出错误
+    }
+
+    // 如果 node 版本小于 16，使用 @8 版本插件
+    const huskyVersion = this.nodeService.versions.preVersion < 16 ? 8 : null;
+
+    // 安装 husky
+    await this.#handleInstall("husky", true, huskyVersion);
+
+    // 初始化 husky
+    this.toolService.execSync("npx husky install");
+
+    // 安装 lint-staged
     await this.#handleInstall("lint-staged", true);
   }
   async install(plugins: TYPE_PLUGIN_ITEM[]) {
@@ -315,58 +371,71 @@ class InstallerService implements InstallerInstance {
     await this.#finalizeLintStaged();
   }
   async choose() {
-    const questionKey = "plugins";
     this.pluginService = new PluginService(false);
     const storagePlugins = this.pluginService.getAll();
-    
+
     // 使用更可靠的交互方式，避免 checkbox 键盘快捷键问题
     const selectedPlugins: string[] = [];
     let continueSelecting = true;
-    
+
     console.log("Available plugins:");
     storagePlugins.forEach((plugin, index) => {
       console.log(`${index + 1}. ${plugin}`);
     });
-    
-    while (continueSelecting && selectedPlugins.length < storagePlugins.length) {
-      const availablePlugins = storagePlugins.filter(plugin => !selectedPlugins.includes(plugin));
-      
+
+    while (
+      continueSelecting &&
+      selectedPlugins.length < storagePlugins.length
+    ) {
+      const availablePlugins = storagePlugins.filter(
+        plugin => !selectedPlugins.includes(plugin)
+      );
+
       if (availablePlugins.length === 0) break;
-      
+
       const question = [
         {
           type: "list",
           name: "plugin",
-          message: selectedPlugins.length > 0 
-            ? `Selected: ${selectedPlugins.join(', ')}\nChoose another plugin (or 'Done' to finish):`
-            : "Choose a plugin to install:",
-          choices: [
-            ...availablePlugins,
-            new inquirer.Separator(),
-            "Done"
-          ],
+          message:
+            selectedPlugins.length > 0
+              ? `Selected: ${selectedPlugins.join(", ")}\nChoose another plugin (or 'Done' to finish):`
+              : "Choose a plugin to install:",
+          choices: [...availablePlugins, new inquirer.Separator(), "Done"],
         },
       ];
-      
+
       const answer = await inquirer.prompt(question);
-      
+
       if (answer.plugin === "Done") {
         continueSelecting = false;
       } else {
         selectedPlugins.push(answer.plugin);
       }
     }
-    
+
     if (selectedPlugins.length === 0) {
       this.loggerService.warn("No plugins selected. Installation cancelled.");
       return;
     }
-    
+
     this.pluginService = new PluginService(false);
     const matInstalls = this.pluginService
       .get()
       .filter(item => selectedPlugins.includes(item.name));
     await this.install(matInstalls);
+  }
+
+  async installAll() {
+    this.pluginService = new PluginService(false);
+    const allPlugins = this.pluginService.get();
+    await this.install(allPlugins);
+  }
+
+  async removeAll() {
+    this.pluginService = new PluginService(false);
+    const allPlugins = this.pluginService.get();
+    await this.uninstall(allPlugins);
   }
 }
 
