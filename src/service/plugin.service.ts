@@ -91,9 +91,9 @@ export class PluginService implements PluginInstance {
     const eslintFile = eslintTpl.filename;
     const eslintContent = eslintTpl.content;
 
-    // 动态启用：仅当项目根目录中存在对应文件时，才注入该插件
-    const hasPrettier = Boolean(prettierTpl.filename);
-    const hasTs = Boolean(tsTpl.filename);
+    // 始终提供所有插件，不管配置文件是否存在
+    const hasPrettier = true; // 始终提供 prettier
+    const hasTs = true; // 始终提供 typescript
     const hasCommitlint = Boolean(
       this.readConfig("commitlint.config.cjs") ||
         this.readConfig("commitlint.config.js")
@@ -102,7 +102,7 @@ export class PluginService implements PluginInstance {
       this.readConfig("lint-staged.config.mjs") ||
         this.readConfig("lint-staged.config.js")
     );
-    const hasEslint = Boolean(eslintFile);
+    const hasEslint = true; // 始终提供 eslint
 
     const plugins: TYPE_PLUGIN_ITEM[] = [];
 
@@ -110,7 +110,7 @@ export class PluginService implements PluginInstance {
       plugins.push({
         name: PRETTIER,
         dev: true,
-        config: { file: prettierTpl.filename!, json: prettierRc },
+        config: { file: prettierTpl.filename || ".prettierrc", json: prettierRc },
         pkgInject: {
           devDependencies: { prettier: "^3.3.3" },
           scripts: { format: "prettier --write ." },
@@ -122,7 +122,7 @@ export class PluginService implements PluginInstance {
       plugins.push({
         name: TS,
         dev: true,
-        config: { file: tsTpl.filename!, json: tsconfig },
+        config: { file: tsTpl.filename || "tsconfig.json", json: tsconfig },
         pkgInject: {
           devDependencies: { typescript: "^5.5.3" },
           scripts: { typecheck: "tsc -p tsconfig.json --noEmit" },
@@ -130,11 +130,11 @@ export class PluginService implements PluginInstance {
       });
     }
 
-    if (hasEslint && eslintFile) {
+    if (hasEslint) {
       plugins.push({
         name: ESLINT,
         dev: true,
-        config: { file: eslintFile, json: eslintContent },
+        config: { file: eslintFile || "eslint.config.js", json: eslintContent },
         pkgInject: {
           devDependencies: {
             eslint: "^8.42.0",

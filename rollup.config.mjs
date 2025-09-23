@@ -40,7 +40,6 @@ export default [
       })
     ],
     external: [
-      "@octokit/rest",
       "inquirer",
       "commander",
       "chalk",
@@ -71,7 +70,6 @@ export default [
       typescript({ tsconfig: "./tsconfig.json", useTsconfigDeclarationDir: true })
     ],
     external: [
-      "@octokit/rest",
       "inquirer",
       "commander",
       "chalk",

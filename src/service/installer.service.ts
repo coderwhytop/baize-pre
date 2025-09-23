@@ -318,25 +318,54 @@ class InstallerService implements InstallerInstance {
     const questionKey = "plugins";
     this.pluginService = new PluginService(false);
     const storagePlugins = this.pluginService.getAll();
-    const question = [
-      {
-        type: "checkbox",
-        name: questionKey,
-        message: "Choose the plugins you want to install.",
-        choices: storagePlugins,
-        pageSize: 10, // 启用分页模式，激活键盘快捷键
-        loop: false, // 禁用循环选择
-        validate(answers: any) {
-          if (!answers.length) return "You must choose at least one plugin.";
-          return true;
+    
+    // 使用更可靠的交互方式，避免 checkbox 键盘快捷键问题
+    const selectedPlugins: string[] = [];
+    let continueSelecting = true;
+    
+    console.log("Available plugins:");
+    storagePlugins.forEach((plugin, index) => {
+      console.log(`${index + 1}. ${plugin}`);
+    });
+    
+    while (continueSelecting && selectedPlugins.length < storagePlugins.length) {
+      const availablePlugins = storagePlugins.filter(plugin => !selectedPlugins.includes(plugin));
+      
+      if (availablePlugins.length === 0) break;
+      
+      const question = [
+        {
+          type: "list",
+          name: "plugin",
+          message: selectedPlugins.length > 0 
+            ? `Selected: ${selectedPlugins.join(', ')}\nChoose another plugin (or 'Done' to finish):`
+            : "Choose a plugin to install:",
+          choices: [
+            ...availablePlugins,
+            new inquirer.Separator(),
+            "Done"
+          ],
         },
-      },
-    ];
-    const answers = await inquirer.prompt(question);
+      ];
+      
+      const answer = await inquirer.prompt(question);
+      
+      if (answer.plugin === "Done") {
+        continueSelecting = false;
+      } else {
+        selectedPlugins.push(answer.plugin);
+      }
+    }
+    
+    if (selectedPlugins.length === 0) {
+      this.loggerService.warn("No plugins selected. Installation cancelled.");
+      return;
+    }
+    
     this.pluginService = new PluginService(false);
     const matInstalls = this.pluginService
       .get()
-      .filter(item => answers[questionKey].includes(item.name));
+      .filter(item => selectedPlugins.includes(item.name));
     await this.install(matInstalls);
   }
 }

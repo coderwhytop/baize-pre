@@ -1,22 +1,24 @@
 import inquirer from "inquirer";
-import { Octokit } from "@octokit/rest";
 import path from "path";
 import fs from "fs";
 import simpleGit, { SimpleGit } from "simple-git";
 
 export class TemplateController {
   static key = "template";
-  private octokit: Octokit;
+  private octokit: any;
   private git: SimpleGit;
   private owner: string = "baizeteam";
   private repo: string = "baize-template";
   constructor() {
-    this.octokit = new Octokit({});
     this.git = simpleGit();
     this.run();
   }
 
   async run() {
+    // 动态导入 @octokit/rest
+    const { Octokit } = await import("@octokit/rest");
+    this.octokit = new Octokit({});
+    
     const branches = await this.getBranches();
     if (branches) {
       const branch = await this.selectBranch(branches);
@@ -62,8 +64,8 @@ export class TemplateController {
         repo: this.repo,
       });
       return response.data
-        .map(branch => branch.name)
-        .filter(item => item !== "master");
+        .map((branch: any) => branch.name)
+        .filter((item: string) => item !== "master");
     } catch (error) {
       console.error("Error fetching branches:", error);
     }
