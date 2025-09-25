@@ -1,7 +1,7 @@
-import { PluginService } from "@/service/plugin.service";
-import { loggerService } from "@/service/logger.service";
-import { installerService } from "@/service/installer.service";
 import { commandService } from "@/service/command.service";
+import { installerService } from "@/service/installer.service";
+import { loggerService } from "@/service/logger.service";
+import { PluginService } from "@/service/plugin.service";
 
 export class RemoveController {
   static key = "remove";

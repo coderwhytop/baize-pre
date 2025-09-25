@@ -1,6 +1,6 @@
+import type { ToolInstance } from "@/types/tool.interface";
+import { execSync } from "node:child_process";
 import fsExtra from "fs-extra";
-import { execSync } from "child_process";
-import { ToolInstance } from "@/instance/tool.instance";
 
 class ToolService implements ToolInstance {
   isObject(obj: object): boolean {
@@ -10,6 +10,7 @@ class ToolService implements ToolInstance {
   formatJSON(content: object) {
     return JSON.stringify(content, null, 2);
   }
+
   writeJSONFileSync(path: string, content: object): void {
     fsExtra.writeFileSync(path, this.formatJSON(content));
   }

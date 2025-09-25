@@ -1,7 +1,7 @@
-import { fileURLToPath } from "url";
-import path from "path";
-import process from "process";
-import { NodeInstance } from "@/instance/node.instance";
+import type { NodeInstance } from "@/types/node.interface";
+import path from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 class NodeService implements NodeInstance {
   public readonly filename: string;
@@ -18,7 +18,7 @@ class NodeService implements NodeInstance {
     this.root = path.join(this.dirname, "..");
     this.versions = {
       preVersion: Number(process.versions.node.split(".")[0]),
-      fullVersion: process.version
+      fullVersion: process.version,
     };
   }
 }

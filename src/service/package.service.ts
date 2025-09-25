@@ -1,11 +1,11 @@
+import type { PackageInstance } from "@/types/package.interface";
+import type { TYPE_PACKAGE_INFO } from "@/types/package.types";
+import type { ToolInstance } from "@/types/tool.interface";
+import { join } from "node:path";
+import process from "node:process";
 import fsExtra from "fs-extra";
-import { join } from "path";
-import { toolService } from "@/service/tool.service";
-import { PackageInstance } from "@/instance/package.instance";
-import { ToolInstance } from "@/instance/tool.instance";
-import { TYPE_PACKAGE_INFO } from "@/type/package.type";
 import { nodeService } from "@/service/node.service";
-import process from "process";
+import { toolService } from "@/service/tool.service";
 
 export class PackageService implements PackageInstance {
   public readonly script: string = "scripts";
@@ -18,6 +18,7 @@ export class PackageService implements PackageInstance {
     this.curDir = isUser ? process.cwd() : nodeService.root;
     this.curPath = join(this.curDir, "package.json");
   }
+
   get(): TYPE_PACKAGE_INFO {
     const defaultInfo: TYPE_PACKAGE_INFO = {
       scripts: {},
@@ -30,7 +31,7 @@ export class PackageService implements PackageInstance {
         const infoJSON = fsExtra.readFileSync(this.curPath, "utf-8");
         info = JSON.parse(infoJSON);
         // console.log("识别成功")
-      } catch (_) {
+      } catch (_unused) {
         // console.log("识别失败")
         info = defaultInfo;
       }
@@ -71,7 +72,7 @@ export class PackageService implements PackageInstance {
     this.toolService.writeJSONFileSync(this.curPath, info);
   }
 
-  update(key: string, content: Object): void {
+  update(key: string, content: object): void {
     const info = this.get();
     if (key === this.script) {
       info[this.script] = { ...info[this.script], ...content };

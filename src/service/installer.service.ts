@@ -1,20 +1,20 @@
+import type { InstallerInstance } from "@/types/installer.interface";
+import type { LoggerInstance } from "@/types/logger.interface";
+import type { TYPE_MANAGER_NAME } from "@/types/manager.types";
+import type { NodeInstance } from "@/types/node.interface";
+import type { PackageInstance } from "@/types/package.interface";
+import type { TYPE_PLUGIN_ITEM } from "@/types/plugin.types";
+import type { ToolInstance } from "@/types/tool.interface";
+import { join } from "node:path";
 import fsExtra from "fs-extra";
-import { join } from "path";
 import inquirer from "inquirer";
-import { PackageService } from "@/service/package.service";
-import { TYPE_PLUGIN_ITEM } from "@/type/plugin.type";
-import { HUSKY } from "@/const/plugin.const";
 import { MANAGER_LIST, PNPM } from "@/const/manager.const";
-import { TYPE_MANAGER_NAME } from "@/type/manager.type";
+import { HUSKY } from "@/const/plugin.const";
 import { loggerService } from "@/service/logger.service";
 import { nodeService } from "@/service/node.service";
-import { toolService } from "@/service/tool.service";
+import { PackageService } from "@/service/package.service";
 import { PluginService } from "@/service/plugin.service";
-import { PackageInstance } from "@/instance/package.instance";
-import { LoggerInstance } from "@/instance/logger.instance";
-import { ToolInstance } from "@/instance/tool.instance";
-import { NodeInstance } from "@/instance/node.instance";
-import { InstallerInstance } from "@/instance/installer.instance";
+import { toolService } from "@/service/tool.service";
 
 class InstallerService implements InstallerInstance {
   private userPkg: PackageInstance;
@@ -40,7 +40,7 @@ class InstallerService implements InstallerInstance {
     ];
     const answer = await inquirer.prompt(question);
     const result = answer[questionKey];
-    this.loggerService.success("You have chosen: " + result);
+    this.loggerService.success(`You have chosen: ${result}`);
     const { preVersion, fullVersion } = this.nodeService.versions;
     if (preVersion < 16 && result === PNPM) {
       this.loggerService.error(
@@ -51,6 +51,7 @@ class InstallerService implements InstallerInstance {
       this.managerName = result;
     }
   }
+
   async #handleInstall(
     pluginName: string,
     dev: boolean = false,
@@ -61,29 +62,30 @@ class InstallerService implements InstallerInstance {
     const { managerName } = this;
     let exec =
       managerName === "yarn"
-        ? managerName + " add "
-        : managerName + " install ";
+        ? `${managerName} add `
+        : `${managerName} install `;
     // 如果是本地模块，则加上-D
     dev && (exec += " -D ");
     exec += pluginName;
     // 如果指定插件版本，则带上version
-    version && (exec += "@" + version);
+    version && (exec += `@${version}`);
 
     try {
       // 捕获安装错误
-      this.loggerService.warn("Installing " + pluginName + " ... ");
+      this.loggerService.warn(`Installing ${pluginName} ... `);
       this.toolService.execSync(exec);
-      this.loggerService.success("Installed " + pluginName + " successfully. ");
+      this.loggerService.success(`Installed ${pluginName} successfully. `);
     } catch (e) {
-      this.loggerService.error("Error: install " + pluginName + " : ");
+      this.loggerService.error(`Error: install ${pluginName} : `);
       console.log(e); // 承接上一行错误，但不要颜色打印
     }
   }
+
   async uninstall(plugins: TYPE_PLUGIN_ITEM[]) {
     // 卸载插件以及插件配置文件，由于包管理工具机制，比如你用npm安装，用yarn卸载某项，yarn执行完毕会去安装全部插件
     // 如果用户的包管理工具不一致，用户自己选择的，不能怪我们
     await this.chooseManager();
-    for (let item of plugins) {
+    for (const item of plugins) {
       const { name, config, pkgInject } = item;
       const pluginName = name;
       await this.#handleUninstall(pluginName)
@@ -103,8 +105,8 @@ class InstallerService implements InstallerInstance {
           }
 
           // 删除包信息配置
-          let info = this.userPkg.get();
-          for (let pkgKey in pkgInject as Record<string, any>) {
+          const info = this.userPkg.get();
+          for (const pkgKey in pkgInject as Record<string, any>) {
             if (info[pkgKey]) {
               const SCRIPTS = this.userPkg.script;
               // console.log(tool.isObject(pkgInject[pkgKey]), pkgKey, pkgInject, 'isObject')
@@ -115,7 +117,7 @@ class InstallerService implements InstallerInstance {
                 )
               ) {
                 // 此时pkg[pkgKey] 等同于 pkgInject[SCRIPTS] 但后者语义好
-                for (let scriptKey in (pkgInject as Record<string, any>)[
+                for (const scriptKey in (pkgInject as Record<string, any>)[
                   SCRIPTS
                 ]) {
                   // SCRIPTS 里有这个键
@@ -150,16 +152,14 @@ class InstallerService implements InstallerInstance {
       const { managerName } = this;
       let exec =
         managerName === "yarn"
-          ? managerName + " remove "
-          : managerName + " uninstall ";
+          ? `${managerName} remove `
+          : `${managerName} uninstall `;
       exec += pkgName;
       try {
         // 捕获安装错误
-        this.loggerService.warn("Uninstalling " + pkgName + " ... ");
+        this.loggerService.warn(`Uninstalling ${pkgName} ... `);
         this.toolService.execSync(exec);
-        this.loggerService.success(
-          "Uninstalled " + pkgName + " successfully. "
-        );
+        this.loggerService.success(`Uninstalled ${pkgName} successfully. `);
         resolve(true);
       } catch (e: any) {
         // 检查是否是包不存在的错误
@@ -168,15 +168,16 @@ class InstallerService implements InstallerInstance {
           e.message.includes("Cannot remove") &&
           e.message.includes("project has no dependencies")
         ) {
-          this.loggerService.warn(pkgName + " is not installed, skipping...");
+          this.loggerService.warn(`${pkgName} is not installed, skipping...`);
           resolve(true); // 继续执行，不中断流程
         } else {
-          this.loggerService.error("Error: uninstall " + pkgName + " : ");
+          this.loggerService.error(`Error: uninstall ${pkgName} : `);
           reject(e);
         }
       }
     });
   }
+
   #handleConfig(
     config: { file: string; json: any } | Array<{ file: string; json: any }>
   ) {
@@ -188,7 +189,7 @@ class InstallerService implements InstallerInstance {
         if (typeof json === "object")
           this.toolService.writeJSONFileSync(filepath, json);
         else fsExtra.writeFileSync(filepath, json);
-      } catch (_) {
+      } catch (_unused) {
         return this.loggerService.error(
           "Internal Error: Configuration injection failed in handleConfig."
         );
@@ -196,18 +197,19 @@ class InstallerService implements InstallerInstance {
     };
     Array.isArray(config) ? config.forEach(writeOne) : writeOne(config);
   }
+
   #updatePackage(pkgInject: Record<string, any>) {
     this.userPkg.get();
     const pkg = this.userPkg.get();
 
-    for (let key in pkgInject) {
+    for (const key in pkgInject) {
       if (key === "scripts") {
         // 对于 scripts，不覆盖现有命令
         const existingScripts = pkg.scripts || {};
         const newScripts = pkgInject[key];
 
         // 只添加不存在的脚本
-        for (let scriptKey in newScripts) {
+        for (const scriptKey in newScripts) {
           if (!existingScripts[scriptKey]) {
             existingScripts[scriptKey] = newScripts[scriptKey];
           }
@@ -294,6 +296,195 @@ class InstallerService implements InstallerInstance {
     }
   }
 
+  #createGitignore() {
+    this.userPkg.get();
+    const gitignorePath = join(this.userPkg.curDir, ".gitignore");
+
+    // 如果 .gitignore 文件已存在，则不覆盖
+    if (fsExtra.existsSync(gitignorePath)) {
+      this.loggerService.warn(".gitignore already exists, skipping creation.");
+      return;
+    }
+
+    // 通用的 .gitignore 内容
+    const gitignoreContent = `# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Directory for instrumented libs generated by jscoverage/JSCover
+lib-cov
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+out/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+*.tgz
+*.tar.gz
+`;
+
+    try {
+      fsExtra.writeFileSync(gitignorePath, gitignoreContent);
+      this.loggerService.success(".gitignore file created successfully.");
+    } catch (error) {
+      this.loggerService.error("Failed to create .gitignore file:");
+      console.log(error);
+    }
+  }
+
   #checkGit() {
     this.userPkg.get();
     const gitPath = join(this.userPkg.curDir, ".git");
@@ -312,6 +503,10 @@ class InstallerService implements InstallerInstance {
         if (answer.createGit) {
           this.toolService.execSync("git init -b dev");
           this.toolService.execSync("git config core.ignorecase false");
+
+          // 创建通用的 .gitignore 文件
+          this.#createGitignore();
+
           this.loggerService.success(
             "Git repository initialized successfully."
           );
@@ -349,9 +544,10 @@ class InstallerService implements InstallerInstance {
     // 安装 lint-staged
     await this.#handleInstall("lint-staged", true);
   }
+
   async install(plugins: TYPE_PLUGIN_ITEM[]) {
     await this.chooseManager();
-    for (let pluginItem of plugins) {
+    for (const pluginItem of plugins) {
       const { name, config, dev, pkgInject } = pluginItem;
       const pluginName = name;
       await this.#handleInstall(
@@ -370,6 +566,7 @@ class InstallerService implements InstallerInstance {
     }
     await this.#finalizeLintStaged();
   }
+
   async choose() {
     this.pluginService = new PluginService(false);
     const storagePlugins = this.pluginService.getAll();

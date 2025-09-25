@@ -1,51 +1,30 @@
-import js from "@eslint/js";
-import tseslint from "@typescript-eslint/eslint-plugin";
-import tsparser from "@typescript-eslint/parser";
+import antfu from "@antfu/eslint-config";
 
-export default [
-  js.configs.recommended,
-  {
-    files: ["**/*.{js,ts,tsx,jsx}"],
-    languageOptions: {
-      parser: tsparser,
-      parserOptions: {
-        ecmaVersion: 2020,
-        sourceType: "module",
-      },
-      globals: {
-        process: "readonly",
-        console: "readonly",
-        Buffer: "readonly",
-        __dirname: "readonly",
-        __filename: "readonly",
-        global: "readonly",
-        module: "readonly",
-        require: "readonly",
-        exports: "readonly",
-      },
-    },
-    plugins: {
-      "@typescript-eslint": tseslint,
-    },
-    rules: {
-      ...tseslint.configs.recommended.rules,
-      "@typescript-eslint/no-unused-vars": "warn",
-      "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/prefer-as-const": "off",
-      "@typescript-eslint/no-wrapper-object-types": "off",
-      "@typescript-eslint/no-unused-expressions": "off",
-      "no-prototype-builtins": "off",
-      "no-undef": "off",
-    },
+export default antfu({
+  typescript: true,
+  vue: false,
+  react: false,
+  node: true,
+  ignores: ["dist/**", "coverage/**", "scripts/**", "template/**"],
+  rules: {
+    // 允许 console.log
+    "no-console": "off",
+    // 允许使用 process 全局变量
+    "node/prefer-global/process": "off",
+    // 允许使用 Object.prototype.hasOwnProperty
+    "no-prototype-builtins": "off",
+    // 允许使用 new 的副作用
+    "no-new": "off",
+    // 关闭未使用变量检查
+    "@typescript-eslint/no-unused-vars": "off",
+    "unused-imports/no-unused-vars": "off",
+    // 允许类型定义使用 type 而不是 interface
+    "ts/consistent-type-definitions": "off",
+    // 允许方法签名使用简写形式
+    "ts/method-signature-style": "off",
+    // 允许使用 Object 而不是 object
+    "ts/no-wrapper-object-types": "off",
+    // 允许使用 const assertion
+    "ts/prefer-as-const": "off",
   },
-  {
-    ignores: [
-      "node_modules/**",
-      "dist/**",
-      "coverage/**",
-      "*.config.js",
-      "scripts/**",
-      "template/**",
-    ],
-  },
-];
+});

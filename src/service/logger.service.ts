@@ -1,7 +1,7 @@
+import type { CommandInstance } from "@/types/command.interface";
+import type { LoggerInstance } from "@/types/logger.interface";
 import chalk from "chalk";
 import { commandService } from "@/service/command.service";
-import { LoggerInstance } from "@/instance/logger.instance";
-import { CommandInstance } from "@/instance/command.instance";
 
 class LoggerService implements LoggerInstance {
   private readonly commandService: CommandInstance = commandService;

@@ -1,7 +1,8 @@
+import type { SimpleGit } from "simple-git";
+import fs from "node:fs";
+import path from "node:path";
 import inquirer from "inquirer";
-import path from "path";
-import fs from "fs";
-import simpleGit, { SimpleGit } from "simple-git";
+import simpleGit from "simple-git";
 
 export class TemplateController {
   static key = "template";
@@ -18,7 +19,7 @@ export class TemplateController {
     // 动态导入 @octokit/rest
     const { Octokit } = await import("@octokit/rest");
     this.octokit = new Octokit({});
-    
+
     const branches = await this.getBranches();
     if (branches) {
       const branch = await this.selectBranch(branches);

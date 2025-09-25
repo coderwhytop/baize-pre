@@ -1,7 +1,7 @@
+import type { PluginInstance } from "@/types/plugin.interface";
+import type { TYPE_PLUGIN_ITEM } from "@/types/plugin.types";
+import path from "node:path";
 import fsExtra from "fs-extra";
-import path from "path";
-import { PluginInstance } from "@/instance/plugin.instance";
-import { TYPE_PLUGIN_ITEM } from "@/type/plugin.type";
 // import { nodeService } from "@/service/node.service";
 import { ESLINT, HUSKY, PRETTIER, TS } from "@/const/plugin.const";
 
@@ -12,6 +12,7 @@ export class PluginService implements PluginInstance {
     if (!fsExtra.existsSync(full)) return "";
     return fsExtra.readFileSync(full, "utf-8");
   }
+
   private readConfigFirst(candidates: string[]): {
     filename: string | null;
     content: string;
@@ -102,22 +103,45 @@ export class PluginService implements PluginInstance {
         file: configs.eslint.filename || "eslint.config.js",
         json:
           configs.eslint.content ||
-          `import js from '@eslint/js'
+          `import antfu from '@antfu/eslint-config'
 
-export default [
-  js.configs.recommended,
-  {
-    rules: {
-      'no-unused-vars': 'warn',
-      'no-console': 'warn'
-    }
-  }
-]`,
+export default antfu({
+  typescript: true,
+  vue: false,
+  react: false,
+  node: true,
+  ignores: [
+    'dist/**',
+    'coverage/**',
+    'scripts/**',
+  ],
+  rules: {
+    // 允许 console.log
+    'no-console': 'off',
+    // 允许使用 process 全局变量
+    'node/prefer-global/process': 'off',
+    // 允许使用 Object.prototype.hasOwnProperty
+    'no-prototype-builtins': 'off',
+    // 允许使用 new 的副作用
+    'no-new': 'off',
+    // 关闭未使用变量检查
+    '@typescript-eslint/no-unused-vars': 'off',
+    'unused-imports/no-unused-vars': 'off',
+    // 允许类型定义使用 type 而不是 interface
+    'ts/consistent-type-definitions': 'off',
+    // 允许方法签名使用简写形式
+    'ts/method-signature-style': 'off',
+    // 允许使用 Object 而不是 object
+    'ts/no-wrapper-object-types': 'off',
+    // 允许使用 const assertion
+    'ts/prefer-as-const': 'off',
+  },
+})`,
       },
       pkgInject: {
         devDependencies: {
           eslint: "^8.42.0",
-          "@eslint/js": "^9.0.0",
+          "@antfu/eslint-config": "^5.4.1",
           "@typescript-eslint/parser": "^6.0.0",
           "@typescript-eslint/eslint-plugin": "^6.0.0",
           "eslint-config-prettier": "^9.0.0",
@@ -168,13 +192,13 @@ export default [
       config: [
         {
           file: ".husky/pre-commit",
-          json: '#!/usr/bin/env sh\n. "$(dirname -- "$0")/_/husky.sh"\n\nnpx lint-staged\n',
+          json: "npx lint-staged\n",
         },
         {
           file: "lint-staged.config.mjs",
           json: `export default {
-  '*.{js,ts,tsx,jsx,vue}': ['eslint --fix', 'prettier --write'],
-  '*.{json,md,yml,yaml}': ['prettier --write']
+  '*.{js,ts,tsx,jsx,vue}': ['npx eslint --fix', 'npx prettier --write'],
+  '*.{json,md,yml,yaml}': ['npx prettier --write'],
 }`,
         },
       ] as any,
@@ -194,9 +218,11 @@ export default [
   getAll() {
     return this.get().map(item => item.name);
   }
+
   get(): TYPE_PLUGIN_ITEM[] {
     return this.getBuiltinPlugins();
   }
+
   reset() {}
   set(_unused: string, _unused2: object) {}
 }

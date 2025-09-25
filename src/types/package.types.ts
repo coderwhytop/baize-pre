@@ -1,5 +1,5 @@
 // package.json接口类型
-export type TYPE_PACKAGE_INFO = {
+export interface TYPE_PACKAGE_INFO {
   name?: string;
   version?: string;
   description?: string;
@@ -18,4 +18,4 @@ export type TYPE_PACKAGE_INFO = {
   };
   // 允许其他属性
   [k: string]: any;
-};
+}

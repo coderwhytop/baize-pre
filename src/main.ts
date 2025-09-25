@@ -1,8 +1,8 @@
-import { join } from "path";
-import fsExtra from "fs-extra";
+import { join } from "node:path";
 import { Command } from "commander";
-import "source-map-support/register.js";
+import fsExtra from "fs-extra";
 import { MainModule } from "@/main.module";
+import "source-map-support/register.js";
 
 class Entry {
   constructor(private readonly mainModule: MainModule) {
@@ -15,7 +15,7 @@ class Entry {
     program
       .version(`${localPkgInfo.name}@${localPkgInfo.version}`)
       .usage("<command> [option]");
-    for (let key in commandList) {
+    for (const key in commandList) {
       const { alias, description } = commandList[key];
       const cmd = program
         .command(key) // 注册命令
@@ -30,7 +30,7 @@ class Entry {
       cmd.action((options, command) => {
         const subExecWord: string = command.name();
         const modules = this.mainModule.getAll();
-        for (let ModuleClass of modules) {
+        for (const ModuleClass of modules) {
           if (
             subExecWord === ModuleClass.key ||
             subExecWord === commandList[ModuleClass.key].alias
