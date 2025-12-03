@@ -80,25 +80,23 @@ export class PluginService implements PluginInstance {
 
     const plugins: TYPE_PLUGIN_ITEM[] = []
 
+    // 从项目根目录读取配置文件
+    const projectPrettierConfig = this.readProjectConfig('.prettierrc')
+    const projectEslintConfig = this.readProjectConfig('eslint.config.js')
+    const projectTsConfig = this.readProjectConfig('tsconfig.json')
+    const projectLintStagedConfig = this.readProjectConfig('lint-staged.config.mjs')
+
     // Prettier 插件
+    const prettierConfigContent = projectPrettierConfig || configs.prettier.content
+    if (!prettierConfigContent) {
+      throw new Error('Prettier config not found in project root')
+    }
     plugins.push({
       name: PRETTIER,
       dev: true,
       config: {
         file: configs.prettier.filename || '.prettierrc',
-        json:
-          configs.prettier.content
-          || JSON.stringify(
-            {
-              singleQuote: true,
-              semi: false,
-              printWidth: 100,
-              tabWidth: 2,
-              trailingComma: 'es5',
-            },
-            null,
-            2,
-          ),
+        json: prettierConfigContent,
       },
       pkgInject: {
         devDependencies: { prettier: '^3.3.3' },
@@ -107,47 +105,16 @@ export class PluginService implements PluginInstance {
     })
 
     // ESLint 插件
+    const eslintConfigContent = projectEslintConfig || configs.eslint.content
+    if (!eslintConfigContent) {
+      throw new Error('ESLint config not found in project root')
+    }
     plugins.push({
       name: ESLINT,
       dev: true,
       config: {
         file: configs.eslint.filename || 'eslint.config.js',
-        json:
-          configs.eslint.content
-          || `import antfu from '@antfu/eslint-config'
-
-export default antfu({
-  typescript: true,
-  vue: false,
-  react: false,
-  node: true,
-  ignores: [
-    'dist/**',
-    'coverage/**',
-    'scripts/**',
-  ],
-  rules: {
-    // 允许 console.log
-    'no-console': 'off',
-    // 允许使用 process 全局变量
-    'node/prefer-global/process': 'off',
-    // 允许使用 Object.prototype.hasOwnProperty
-    'no-prototype-builtins': 'off',
-    // 允许使用 new 的副作用
-    'no-new': 'off',
-    // 关闭未使用变量检查
-    '@typescript-eslint/no-unused-vars': 'off',
-    'unused-imports/no-unused-vars': 'off',
-    // 允许类型定义使用 type 而不是 interface
-    'ts/consistent-type-definitions': 'off',
-    // 允许方法签名使用简写形式
-    'ts/method-signature-style': 'off',
-    // 允许使用 Object 而不是 object
-    'ts/no-wrapper-object-types': 'off',
-    // 允许使用 const assertion
-    'ts/prefer-as-const': 'off',
-  },
-})`,
+        json: eslintConfigContent,
       },
       pkgInject: {
         devDependencies: {
@@ -163,32 +130,16 @@ export default antfu({
     })
 
     // TypeScript 插件
+    const tsConfigContent = projectTsConfig || configs.typescript.content
+    if (!tsConfigContent) {
+      throw new Error('TypeScript config not found in project root')
+    }
     plugins.push({
       name: TS,
       dev: true,
       config: {
         file: configs.typescript.filename || 'tsconfig.json',
-        json:
-          configs.typescript.content
-          || JSON.stringify(
-            {
-              compilerOptions: {
-                target: 'ES2020',
-                module: 'ESNext',
-                moduleResolution: 'Node',
-                strict: true,
-                esModuleInterop: true,
-                skipLibCheck: true,
-                forceConsistentCasingInFileNames: true,
-                allowSyntheticDefaultImports: true,
-                resolveJsonModule: true,
-              },
-              include: ['src/**/*'],
-              exclude: ['node_modules', 'dist'],
-            },
-            null,
-            2,
-          ),
+        json: tsConfigContent,
       },
       pkgInject: {
         devDependencies: { typescript: '^5.5.3' },
@@ -207,10 +158,7 @@ export default antfu({
         },
         {
           file: 'lint-staged.config.mjs',
-          json: `export default {
-  '*.{js,ts,tsx,jsx,vue}': ['npx eslint --fix', 'npx prettier --write'],
-  '*.{json,md,yml,yaml}': ['npx prettier --write'],
-}`,
+          json: projectLintStagedConfig,
         },
       ] as any,
       pkgInject: {

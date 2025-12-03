@@ -29,6 +29,10 @@ export default [
         targets: [
           { src: 'README.md', dest: 'dist' },
           { src: '.gitignore', dest: 'dist' },
+          { src: '.prettierrc', dest: 'dist' },
+          { src: 'eslint.config.js', dest: 'dist' },
+          { src: 'tsconfig.json', dest: 'dist' },
+          { src: 'lint-staged.config.mjs', dest: 'dist' },
         ],
       }),
     ],
