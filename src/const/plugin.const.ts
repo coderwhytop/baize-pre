@@ -1,5 +1,5 @@
-export const HUSKY: "husky" = "husky";
-export const PRETTIER: "prettier" = "prettier";
-export const TS: "typescript" = "typescript";
-export const ESLINT: "eslint" = "eslint";
-export const COMMITLINT: "commitlint" = "commitlint";
+export const HUSKY: 'husky' = 'husky'
+export const PRETTIER: 'prettier' = 'prettier'
+export const TS: 'typescript' = 'typescript'
+export const ESLINT: 'eslint' = 'eslint'
+export const COMMITLINT: 'commitlint' = 'commitlint'

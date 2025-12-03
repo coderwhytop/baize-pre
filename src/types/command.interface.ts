@@ -1,10 +1,10 @@
 export interface CommandInstance {
-  main: string;
+  main: string
   subs: {
     [key: string]: {
-      alias: string;
-      description: string;
-      examples: string[];
-    };
-  };
+      alias: string
+      description: string
+      examples: string[]
+    }
+  }
 }

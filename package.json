@@ -23,6 +23,9 @@
   "bin": {
     "baize": "dist/cli.mjs"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rimraf dist && rollup -c rollup.config.mjs",
     "build:watch": "rollup -c rollup.config.mjs -w",
@@ -33,7 +36,7 @@
     "format": "prettier --write .",
     "lint-staged": "lint-staged",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint . --ext .ts,.tsx,.js"
+    "lint": "eslint --fix . --ext .ts,.tsx,.js"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.1",
