@@ -26,5 +26,7 @@ export default antfu({
     'ts/no-wrapper-object-types': 'off',
     // 允许使用 const assertion
     'ts/prefer-as-const': 'off',
+    // 关闭大括号样式规则，让 Prettier 处理格式化
+    'style/brace-style': 'off',
   },
 })
