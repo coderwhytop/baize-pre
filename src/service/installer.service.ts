@@ -253,15 +253,15 @@ class InstallerService implements InstallerInstance {
       const lintStagedConfig: Record<string, string[]> = {};
 
       if (hasPrettier) {
-        lintStagedConfig[codeFiles] = ["prettier --write"];
-        lintStagedConfig[textFiles] = ["prettier --write"];
+        lintStagedConfig[codeFiles] = ["npx prettier --write"];
+        lintStagedConfig[textFiles] = ["npx prettier --write"];
       }
 
       if (hasESLint) {
         if (lintStagedConfig[codeFiles]) {
-          lintStagedConfig[codeFiles].unshift("eslint --fix");
+          lintStagedConfig[codeFiles].unshift("npx eslint --fix");
         } else {
-          lintStagedConfig[codeFiles] = ["eslint --fix"];
+          lintStagedConfig[codeFiles] = ["npx eslint --fix"];
         }
       }
 
@@ -275,6 +275,16 @@ class InstallerService implements InstallerInstance {
 
       // 直接覆盖 lint-staged 配置
       this.userPkg.update(lsKey, lintStagedConfig);
+
+      // 同时更新 lint-staged.config.mjs 文件
+      const lintStagedConfigMjsPath = join(this.userPkg.curDir, "lint-staged.config.mjs");
+      const configContent = `export default {\n${Object.entries(lintStagedConfig)
+        .map(([pattern, commands]) => {
+          const commandsStr = commands.map(cmd => `'${cmd}'`).join(", ");
+          return `  '${pattern}': [${commandsStr}],`;
+        })
+        .join("\n")}\n}`;
+      fsExtra.writeFileSync(lintStagedConfigMjsPath, configContent, "utf-8");
     } else {
       // 如果没有安装 husky，在 scripts 中添加对应的脚本命令（不覆盖现有命令）
       const scripts = pkg.scripts || {};
@@ -501,7 +511,8 @@ coverage/
 
       return inquirer.prompt(question).then((answer: any) => {
         if (answer.createGit) {
-          this.toolService.execSync("git init -b dev");
+          this.toolService.execSync("git init -b master");
+          // 忽略文件大小写
           this.toolService.execSync("git config core.ignorecase false");
 
           // 创建通用的 .gitignore 文件

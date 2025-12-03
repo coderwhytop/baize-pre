@@ -18,7 +18,7 @@ Baize Pre 是一个面向前端项目的“规范化与初始化”脚手架，�
 
 - 低侵入：对存量项目改动小，可按需选择启用项
 - 开箱即用：默认配置即合理，亦支持自定义
-- 渐进式：`init` 与 `install` 命令覆盖新老项目场景
+- 渐进式：`init` 命令覆盖新老项目场景
 - 体积小：源码 < 100k，安装运行轻量
 - 跨框架：不绑定具体框架，只要有 Node.js 即可使用
 
@@ -53,7 +53,7 @@ baize init
 
 ```bash
 mkdir my-app && cd my-app
-baize all
+baize init --all
 # 一次性安装并写入所有内置插件与配置
 ```
 
@@ -66,26 +66,21 @@ baize template
 
 ## 命令说明
 
-- `baize init`：交互式选择并安装多个插件，按当前 Node.js 版本适配配置。
-- `baize install <plugin...>`：安装并配置指定插件（若名称不匹配会给出可选列表）。
-- `baize uninstall <plugin...>`：卸载指定插件并移除对应配置。
-- `baize all`：一键安装所有内置插件（默认包含 Prettier、Husky、TypeScript）。
-- `baize config get|set <default|plugin...>`：读取或设置 CLI 变量/插件配置，支持 `default`。
+- `baize init`：交互式选择并安装多个插件，按当前 Node.js 版本适配配置。使用 `baize init --all` 可一键安装所有内置插件。
 - `baize template`：选择 `baizeteam/baize-template` 分支，克隆模板、改名并删除 `.git`。
 - `baize -h`：查看帮助；`baize -V`：查看当前版本。
 
 ## 常见用法示例
 
 ```bash
-# 安装指定插件
-baize install prettier husky
+# 交互式选择并安装插件
+baize init
 
-# 卸载指定插件
-baize uninstall husky
+# 一键安装所有内置插件
+baize init --all
 
-# 查看/设置默认配置（示例）
-baize config get default
-baize config set default
+# 从模板创建新项目
+baize template
 ```
 
 ## 依赖与技术栈
@@ -135,6 +130,7 @@ baize config set default
 - 重构 `PluginService` 从项目自身配置文件读取，而非硬编码模板
 - 优化 `InstallerService` 的 `#finalizeLintStaged` 方法，支持智能配置合并
 - 更新 `PackageService` 的依赖合并逻辑，避免配置丢失
+- 发布自动更新 npm 版本
 
 ## TODO
 
