@@ -1,7 +1,7 @@
 {
   "name": "baize-pre",
   "type": "module",
-  "version": "0.5.5",
+  "version": "0.5.8",
   "description": "A useful progressive front-end normalization tool.",
   "author": "kevin",
   "license": "ISC",

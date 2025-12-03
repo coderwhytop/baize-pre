@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import fsExtra from 'fs-extra'
 import inquirer from 'inquirer'
 import { MANAGER_LIST, PNPM } from '@/const/manager.const'
+import { ESLINT } from '@/const/plugin.const'
 import { loggerService } from '@/service/logger.service'
 import { nodeService } from '@/service/node.service'
 import { PackageService } from '@/service/package.service'
@@ -154,6 +155,7 @@ class InstallerService implements InstallerInstance {
     if (hasHusky) {
       const lsKey = 'lint-staged'
       const codeFiles = '*.{js,ts,vue,jsx,tsx}'
+      const tsFiles = '*.{ts,tsx}'
       const textFiles = '*.{json,md,yml,yaml}'
 
       const lintStagedConfig: Record<string, string[]> = {}
@@ -172,13 +174,9 @@ class InstallerService implements InstallerInstance {
         }
       }
 
+      // TypeScript 类型检查只对 TypeScript 文件运行，避免检查 JavaScript 文件
       if (hasTypeScript) {
-        if (lintStagedConfig[codeFiles]) {
-          lintStagedConfig[codeFiles].push('tsc --noEmit')
-        }
-        else {
-          lintStagedConfig[codeFiles] = ['tsc --noEmit']
-        }
+        lintStagedConfig[tsFiles] = ['tsc --noEmit']
       }
 
       // 直接覆盖 lint-staged 配置
@@ -294,6 +292,39 @@ class InstallerService implements InstallerInstance {
     return Promise.resolve(true)
   }
 
+  async #checkESLint() {
+    // 检查 package.json 是否有 "type": "module"
+    const pkg = this.userPkg.get()
+    if (pkg.type === 'module') {
+      return // 已经有 type: module，不需要处理
+    }
+
+    // 如果没有 type: module，询问用户是否需要添加
+    const question = [
+      {
+        type: 'confirm',
+        name: 'addModuleType',
+        message:
+          'ESLint config requires "type": "module" in package.json. Do you want to add it automatically?',
+        default: true,
+      },
+    ]
+
+    const answer = await inquirer.prompt(question)
+    if (answer.addModuleType) {
+      // 直接更新 package.json 的 type 字段
+      const pkg = this.userPkg.get()
+      pkg.type = 'module'
+      this.toolService.writeJSONFileSync(this.userPkg.curPath, pkg)
+      this.loggerService.success('Added "type": "module" to package.json')
+    }
+    else {
+      this.loggerService.warn(
+        'Skipping "type": "module" addition. ESLint may not work correctly without it.',
+      )
+    }
+  }
+
   async #checkHusky() {
     // 检查 git，如果没有则询问是否创建
     const gitReady = await this.#checkGit()
@@ -303,6 +334,9 @@ class InstallerService implements InstallerInstance {
       )
       return // 跳过 husky 安装，不抛出错误
     }
+
+    // 检查并创建 .gitignore（如果不存在）
+    this.#createGitignore()
 
     // 如果 node 版本小于 16，使用 @8 版本插件
     const huskyVersion = this.nodeService.versions.preVersion < 16 ? 8 : null
@@ -322,6 +356,12 @@ class InstallerService implements InstallerInstance {
     for (const pluginItem of plugins) {
       const { name, config, dev, pkgInject } = pluginItem
       const pluginName = name
+
+      // 在安装 ESLint 之前检查并提示设置 type: module
+      if (pluginName === ESLINT) {
+        await this.#checkESLint()
+      }
+
       await this.#handleInstall(
         pluginName,
         dev,
