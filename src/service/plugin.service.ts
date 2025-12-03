@@ -2,7 +2,6 @@ import type { PluginInstance } from "@/types/plugin.interface";
 import type { TYPE_PLUGIN_ITEM } from "@/types/plugin.types";
 import path from "node:path";
 import fsExtra from "fs-extra";
-// import { nodeService } from "@/service/node.service";
 import { ESLINT, HUSKY, PRETTIER, TS } from "@/const/plugin.const";
 
 export class PluginService implements PluginInstance {

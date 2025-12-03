@@ -28,6 +28,7 @@ export default [
       copy({
         targets: [
           { src: 'README.md', dest: 'dist' },
+          { src: '.gitignore', dest: 'dist' },
         ],
       }),
     ],

@@ -1,7 +1,6 @@
 import type { CommandInstance } from "@/types/command.interface";
 import type { NodeInstance } from "@/types/node.interface";
 import { InitController } from "@/controller/init.controller";
-// import { RemoveController } from "@/controller/remove.controller";
 import { TemplateController } from "@/controller/template.controller";
 import { commandService } from "@/service/command.service";
 import { nodeService } from "@/service/node.service";

@@ -9,7 +9,6 @@ import { join } from "node:path";
 import fsExtra from "fs-extra";
 import inquirer from "inquirer";
 import { MANAGER_LIST, PNPM } from "@/const/manager.const";
-import { HUSKY } from "@/const/plugin.const";
 import { loggerService } from "@/service/logger.service";
 import { nodeService } from "@/service/node.service";
 import { PackageService } from "@/service/package.service";
@@ -81,102 +80,6 @@ class InstallerService implements InstallerInstance {
     }
   }
 
-  async uninstall(plugins: TYPE_PLUGIN_ITEM[]) {
-    // 卸载插件以及插件配置文件，由于包管理工具机制，比如你用npm安装，用yarn卸载某项，yarn执行完毕会去安装全部插件
-    // 如果用户的包管理工具不一致，用户自己选择的，不能怪我们
-    await this.chooseManager();
-    for (const item of plugins) {
-      const { name, config, pkgInject } = item;
-      const pluginName = name;
-      await this.#handleUninstall(pluginName)
-        .then(async () => {
-          // 移除配置项
-          const files: string[] = Array.isArray(config)
-            ? config.map((c: any) => c.file)
-            : [config.file];
-          if (pluginName === "husky") {
-            const huskyDir = join(this.userPkg.curDir, ".husky");
-            if (fsExtra.existsSync(huskyDir)) fsExtra.removeSync(huskyDir);
-          } else {
-            files.forEach(f => {
-              const filepath = join(this.userPkg.curDir, f);
-              if (fsExtra.existsSync(filepath)) fsExtra.removeSync(filepath);
-            });
-          }
-
-          // 删除包信息配置
-          const info = this.userPkg.get();
-          for (const pkgKey in pkgInject as Record<string, any>) {
-            if (info[pkgKey]) {
-              const SCRIPTS = this.userPkg.script;
-              // console.log(tool.isObject(pkgInject[pkgKey]), pkgKey, pkgInject, 'isObject')
-              if (
-                pkgKey === SCRIPTS &&
-                this.toolService.isObject(
-                  (pkgInject as Record<string, any>)[SCRIPTS]
-                )
-              ) {
-                // 此时pkg[pkgKey] 等同于 pkgInject[SCRIPTS] 但后者语义好
-                for (const scriptKey in (pkgInject as Record<string, any>)[
-                  SCRIPTS
-                ]) {
-                  // SCRIPTS 里有这个键
-                  if (info[SCRIPTS].hasOwnProperty(scriptKey)) {
-                    // console.log('SCRIPTS 里有这个键', scriptKey, info[SCRIPTS])
-                    // 多判断husky里携带的lint-staged
-                    if (pluginName === HUSKY) {
-                      const LINT = "lint-staged";
-                      await this.#handleUninstall(LINT);
-                      this.userPkg.remove(LINT, true);
-                    } else {
-                      this.userPkg.remove(scriptKey, true);
-                    }
-                  }
-                }
-              } else {
-                // console.log(info[pkgKey], 'other')
-                this.userPkg.remove(pkgKey);
-              }
-            }
-          }
-        })
-        .catch(e => {
-          console.log(e); // 承接上一行错误，但不要颜色打印
-        });
-    }
-  }
-
-  #handleUninstall(pkgName: string) {
-    return new Promise((resolve, reject) => {
-      this.userPkg.get();
-      const { managerName } = this;
-      let exec =
-        managerName === "yarn"
-          ? `${managerName} remove `
-          : `${managerName} uninstall `;
-      exec += pkgName;
-      try {
-        // 捕获安装错误
-        this.loggerService.warn(`Uninstalling ${pkgName} ... `);
-        this.toolService.execSync(exec);
-        this.loggerService.success(`Uninstalled ${pkgName} successfully. `);
-        resolve(true);
-      } catch (e: any) {
-        // 检查是否是包不存在的错误
-        if (
-          e.message &&
-          e.message.includes("Cannot remove") &&
-          e.message.includes("project has no dependencies")
-        ) {
-          this.loggerService.warn(`${pkgName} is not installed, skipping...`);
-          resolve(true); // 继续执行，不中断流程
-        } else {
-          this.loggerService.error(`Error: uninstall ${pkgName} : `);
-          reject(e);
-        }
-      }
-    });
-  }
 
   #handleConfig(
     config: { file: string; json: any } | Array<{ file: string; json: any }>
@@ -316,8 +219,24 @@ class InstallerService implements InstallerInstance {
       return;
     }
 
-    // 通用的 .gitignore 内容
-    const gitignoreContent = `# Dependencies
+    // 从项目根目录读取 .gitignore 文件
+    const projectGitignorePath = join(this.nodeService.root, ".gitignore");
+    let gitignoreContent: string;
+
+    if (fsExtra.existsSync(projectGitignorePath)) {
+      try {
+        gitignoreContent = fsExtra.readFileSync(projectGitignorePath, "utf-8");
+      } catch (error) {
+        this.loggerService.error("Failed to read .gitignore from project root:");
+        console.log(error);
+        return;
+      }
+    } else {
+      // 如果项目根目录没有 .gitignore，使用默认内容
+      this.loggerService.warn(
+        ".gitignore not found in project root, using default content."
+      );
+      gitignoreContent = `# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -413,49 +332,6 @@ temp/
 logs
 *.log
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Directory for instrumented libs generated by jscoverage/JSCover
-lib-cov
-
-# Coverage directory used by tools like istanbul
-coverage
-
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components
-
-# node-waf configuration
-.lock-wscript
-
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
-
-# Dependency directories
-node_modules/
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
-*.tgz
-
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-
 # IDE
 .vscode/
 .idea/
@@ -485,6 +361,7 @@ coverage/
 *.tgz
 *.tar.gz
 `;
+    }
 
     try {
       fsExtra.writeFileSync(gitignorePath, gitignoreContent);
@@ -638,12 +515,6 @@ coverage/
     this.pluginService = new PluginService(false);
     const allPlugins = this.pluginService.get();
     await this.install(allPlugins);
-  }
-
-  async removeAll() {
-    this.pluginService = new PluginService(false);
-    const allPlugins = this.pluginService.get();
-    await this.uninstall(allPlugins);
   }
 }
 
