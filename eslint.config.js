@@ -5,7 +5,13 @@ export default antfu({
   vue: false,
   react: false,
   node: true,
-  ignores: ['dist/**', 'coverage/**', 'scripts/**', 'template/**'],
+  ignores: [
+    'dist/**',
+    'coverage/**',
+    'scripts/**',
+    'template/**',
+    'tsconfig*.json',
+  ],
   rules: {
     // 允许 console.log
     'no-console': 'off',

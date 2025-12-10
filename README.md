@@ -21,6 +21,7 @@ Baize Pre 是一个面向前端项目的“规范化与初始化”脚手架，�
 - 渐进式：`init` 命令覆盖新老项目场景
 - 体积小：源码 < 100k，安装运行轻量
 - 跨框架：不绑定具体框架，只要有 Node.js 即可使用
+- **智能配置**：选择 TypeScript 时根据选择的框架类型（Vue/React/Node.js），生成对应的 `tsconfig.json` 配置
 
 ## 安装
 
@@ -47,6 +48,7 @@ pnpm add -D baize-pre
 ```bash
 baize init
 # 交互式选择并安装需要的插件（Prettier / Husky / TypeScript 等）
+# 选择 TypeScript 时，会进一步询问框架类型（Vue / React / Node.js），自动生成对应的 tsconfig.json
 ```
 
 新项目一键规范化：
@@ -66,7 +68,11 @@ baize template
 
 ## 命令说明
 
-- `baize init`：交互式选择并安装多个插件，按当前 Node.js 版本适配配置。使用 `baize init --all` 可一键安装所有内置插件。
+- `baize init`：交互式选择并安装多个插件。使用 `baize init --all` 可一键安装所有内置插件。
+  - **TypeScript 框架选择**：当选择安装 TypeScript 插件时，会进一步询问项目框架类型：
+    - **Vue + TypeScript**：生成适用于 Vue 3 + Vite 的 `tsconfig.json`（支持 `.vue` 文件、`jsx: "preserve"`）
+    - **React + TypeScript**：生成适用于 React + Vite 的 `tsconfig.json`（`jsx: "react-jsx"`）
+    - **Node.js + TypeScript**：生成适用于 Node.js 项目的 `tsconfig.json`（包含编译输出配置）
 - `baize template`：选择 `baizeteam/baize-template` 分支，克隆模板、改名并删除 `.git`。
 - `baize -h`：查看帮助；`baize -V`：查看当前版本。
 
@@ -132,7 +138,53 @@ baize template
 - 更新 `PackageService` 的依赖合并逻辑，避免配置丢失
 - 发布自动更新 npm 版本
 
-## TODO
+## 更新日志
 
-- 关于包管理器的使用策略：是"项目内仅选择一次"，还是"每次安装均询问"？
-- 继续完善 TS 重构与别名路径配置
+### v0.6.0 (最新)
+
+#### 🎉 新功能
+
+- **TypeScript 框架选择**：安装 TypeScript 插件时，支持选择框架类型（Vue / React / Node.js），自动生成对应的 `tsconfig.json` 配置
+  - Vue + TypeScript：适用于 Vue 3 + Vite 项目
+  - React + TypeScript：适用于 React + Vite 项目
+  - Node.js + TypeScript：适用于 Node.js 后端项目
+
+#### 🔧 修复
+
+- **修复配置文件命名问题**：修复了当项目存在空的 `.eslintrc.json` 时，会错误地将 JS 配置写入 JSON 文件的问题
+- **优化配置文件检测**：改进了 Prettier、ESLint、lint-staged 配置文件的检测逻辑，优先使用已有配置文件名
+
+#### 🚀 优化
+
+- **配置文件智能沿用**：如果项目已有配置文件且有内容，会沿用原文件名；否则使用默认文件名
+- **模板文件管理**：新增 `tsconfig.vue.json`、`tsconfig.react.json` 模板文件，提供开箱即用的 TypeScript 配置
+
+### v0.3.0 (2024-01-15)
+
+#### 🎉 新功能
+
+- **智能 lint-staged 配置**：根据已安装插件动态生成 `lint-staged` 配置，避免空配置导致的 git hook 错误
+- **灵活的代码检查方式**：
+  - 安装 husky → 自动配置 `lint-staged`，提交时自动运行代码检查
+  - 不安装 husky → 在 `package.json` 的 `scripts` 中添加手动命令（如 `npm run format`、`npm run lint`）
+
+#### 🔧 修复
+
+- **修复依赖合并问题**：`devDependencies` 和 `dependencies` 现在正确合并而不是覆盖
+- **修复 ESLint v9 兼容性**：迁移到新的 flat 配置格式（`eslint.config.js`）
+- **修复 TypeScript 类型错误**：添加正确的类型断言和索引签名
+- **修复 Husky v9 废弃警告**：更新 git hooks 配置
+
+#### 🚀 优化
+
+- **简化构建配置**：移除不再需要的 `template` 目录和 `store` 文件
+- **动态插件检测**：插件系统现在直接从项目根目录读取配置文件，无需外部模板
+- **更好的错误处理**：改进了安装过程中的错误提示和异常处理
+
+#### 📝 技术改进
+
+- 重构 `PluginService` 从项目自身配置文件读取，而非硬编码模板
+- 优化 `InstallerService` 的 `#finalizeLintStaged` 方法，支持智能配置合并
+- 更新 `PackageService` 的依赖合并逻辑，避免配置丢失
+- 发布自动更新 npm 版本
+

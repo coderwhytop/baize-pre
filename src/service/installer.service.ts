@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import fsExtra from 'fs-extra'
 import inquirer from 'inquirer'
 import { MANAGER_LIST, PNPM } from '@/const/manager.const'
-import { ESLINT } from '@/const/plugin.const'
+import { ESLINT, TS } from '@/const/plugin.const'
 import { loggerService } from '@/service/logger.service'
 import { nodeService } from '@/service/node.service'
 import { PackageService } from '@/service/package.service'
@@ -23,6 +23,23 @@ class InstallerService implements InstallerInstance {
   private readonly loggerService: LoggerInstance = loggerService
   private readonly toolService: ToolInstance = toolService
   private readonly nodeService: NodeInstance = nodeService
+  // 如果用户已有 lint-staged 配置文件，则沿用其文件名；否则默认生成 lint-staged.config.mjs
+  #resolveLintStagedFile(): string {
+    const candidates = [
+      'lint-staged.config.mjs',
+      'lint-staged.config.js',
+      'lint-staged.config.cjs',
+      '.lintstagedrc',
+      '.lintstagedrc.json',
+      '.lintstagedrc.js',
+      '.lintstagedrc.cjs',
+    ]
+    for (const name of candidates) {
+      if (fsExtra.existsSync(join(this.userPkg.curDir, name)))
+        return name
+    }
+    return 'lint-staged.config.mjs'
+  }
 
   constructor() {
     this.userPkg = new PackageService(true)
@@ -155,7 +172,6 @@ class InstallerService implements InstallerInstance {
     if (hasHusky) {
       const lsKey = 'lint-staged'
       const codeFiles = '*.{js,ts,vue,jsx,tsx}'
-      const tsFiles = '*.{ts,tsx}'
       const textFiles = '*.{json,md,yml,yaml}'
 
       const lintStagedConfig: Record<string, string[]> = {}
@@ -175,15 +191,20 @@ class InstallerService implements InstallerInstance {
       }
 
       // TypeScript 类型检查只对 TypeScript 文件运行，避免检查 JavaScript 文件
+      // 使用 --skipLibCheck 跳过 node_modules 的类型检查，避免第三方库的类型错误
+      // 注意：只检查 .ts 和 .tsx 文件，不检查 .vue 文件（.vue 文件需要 vue-tsc）
       if (hasTypeScript) {
-        lintStagedConfig[tsFiles] = ['tsc --noEmit']
+        // 只检查纯 TypeScript 文件，不包含 .vue
+        const pureTsFiles = '*.{ts,tsx}'
+        lintStagedConfig[pureTsFiles] = ['tsc --noEmit --skipLibCheck']
       }
 
       // 直接覆盖 lint-staged 配置
       this.userPkg.update(lsKey, lintStagedConfig)
 
       // 同时更新 lint-staged.config.mjs 文件
-      const lintStagedConfigMjsPath = join(this.userPkg.curDir, 'lint-staged.config.mjs')
+      const lintStagedConfigFile = this.#resolveLintStagedFile()
+      const lintStagedConfigMjsPath = join(this.userPkg.curDir, lintStagedConfigFile)
       const configContent = `export default {\n${Object.entries(lintStagedConfig)
         .map(([pattern, commands]) => {
           const commandsStr = commands.map(cmd => `'${cmd}'`).join(', ')
@@ -203,7 +224,7 @@ class InstallerService implements InstallerInstance {
         scripts.lint = 'eslint . --ext .ts,.tsx,.js --fix'
       }
       if (hasTypeScript && !scripts.typecheck) {
-        scripts.typecheck = 'tsc --noEmit'
+        scripts.typecheck = 'tsc --noEmit --skipLibCheck'
       }
 
       // 更新 scripts
@@ -351,6 +372,56 @@ class InstallerService implements InstallerInstance {
     await this.#handleInstall('lint-staged', true)
   }
 
+  async #chooseTypeScriptFramework(): Promise<string> {
+    const question = [
+      {
+        type: 'list',
+        name: 'framework',
+        message: 'Which TypeScript framework do you want to use?',
+        choices: [
+          { name: 'Vue + TypeScript', value: 'vue' },
+          { name: 'React + TypeScript', value: 'react' },
+          { name: 'Node.js + TypeScript', value: 'node' },
+        ],
+      },
+    ]
+
+    const answer = await inquirer.prompt(question)
+    return answer.framework
+  }
+
+  async #handleTypeScriptConfig(framework: string) {
+    // 框架 -> 模板文件映射
+    const frameworkMap: Record<string, string> = {
+      vue: 'tsconfig.vue.json',
+      react: 'tsconfig.react.json',
+      node: 'tsconfig.json', // 原 node-ts 模板
+    }
+    const templateFileName = frameworkMap[framework] || 'tsconfig.json'
+
+    // 先尝试从 dist 目录读取（发布后的路径），再回退到项目根目录（开发环境）
+    let templatePath = join(this.nodeService.root, 'dist', templateFileName)
+    if (!fsExtra.existsSync(templatePath))
+      templatePath = join(this.nodeService.root, templateFileName)
+
+    if (!fsExtra.existsSync(templatePath)) {
+      this.loggerService.error(
+        `TypeScript template file not found: ${templateFileName}`,
+      )
+      return
+    }
+
+    // 读取模板内容
+    const templateContent = fsExtra.readFileSync(templatePath, 'utf-8')
+
+    // 写入到用户项目的 tsconfig.json
+    const userTsConfigPath = join(this.userPkg.curDir, 'tsconfig.json')
+    fsExtra.writeFileSync(userTsConfigPath, templateContent, 'utf-8')
+    this.loggerService.success(
+      `Created tsconfig.json for ${framework} successfully.`,
+    )
+  }
+
   async install(plugins: TYPE_PLUGIN_ITEM[]) {
     await this.chooseManager()
     for (const pluginItem of plugins) {
@@ -371,10 +442,19 @@ class InstallerService implements InstallerInstance {
       )
       // 顺序很重要，放最前面
       pluginName === 'husky' && (await this.#checkHusky())
+
+      // TypeScript 特殊处理：询问框架类型并写入对应的配置文件
+      if (pluginName === TS) {
+        const framework = await this.#chooseTypeScriptFramework()
+        await this.#handleTypeScriptConfig(framework)
+      }
+
       // // 有需要合并的脚本
       pkgInject && (await this.#updatePackage(pkgInject))
-      // // 有需要write的config文件
-      config && this.#handleConfig(config)
+      // // 有需要write的config文件（TypeScript 已单独处理，跳过）
+      if (pluginName !== TS && config) {
+        this.#handleConfig(config)
+      }
     }
     await this.#finalizeLintStaged()
   }

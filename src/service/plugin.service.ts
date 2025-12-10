@@ -88,6 +88,10 @@ export class PluginService implements PluginInstance {
 
     // Prettier 插件
     const prettierConfigContent = projectPrettierConfig || configs.prettier.content
+    const prettierConfigFile =
+      configs.prettier.filename && configs.prettier.content
+        ? configs.prettier.filename
+        : '.prettierrc'
     if (!prettierConfigContent) {
       throw new Error('Prettier config not found in project root')
     }
@@ -95,7 +99,7 @@ export class PluginService implements PluginInstance {
       name: PRETTIER,
       dev: true,
       config: {
-        file: configs.prettier.filename || '.prettierrc',
+        file: prettierConfigFile,
         json: prettierConfigContent,
       },
       pkgInject: {
@@ -105,7 +109,12 @@ export class PluginService implements PluginInstance {
     })
 
     // ESLint 插件
+    // 如果用户已有并写入内容，则沿用其文件名；否则默认生成 flat 配置文件 eslint.config.js
     const eslintConfigContent = projectEslintConfig || configs.eslint.content
+    const eslintConfigFile =
+      configs.eslint.filename && configs.eslint.content
+        ? configs.eslint.filename
+        : 'eslint.config.js'
     if (!eslintConfigContent) {
       throw new Error('ESLint config not found in project root')
     }
@@ -113,7 +122,7 @@ export class PluginService implements PluginInstance {
       name: ESLINT,
       dev: true,
       config: {
-        file: configs.eslint.filename || 'eslint.config.js',
+        file: eslintConfigFile,
         json: eslintConfigContent,
       },
       pkgInject: {
