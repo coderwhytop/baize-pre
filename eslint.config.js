@@ -34,5 +34,7 @@ export default antfu({
     'ts/prefer-as-const': 'off',
     // 关闭大括号样式规则，让 Prettier 处理格式化
     'style/brace-style': 'off',
+    // 修复 unicorn/prefer-node-protocol 兼容性问题
+    'unicorn/prefer-node-protocol': 'off',
   },
 })
