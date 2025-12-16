@@ -32,9 +32,32 @@ export default antfu({
     'ts/no-wrapper-object-types': 'off',
     // 允许使用 const assertion
     'ts/prefer-as-const': 'off',
-    // 关闭大括号样式规则，让 Prettier 处理格式化
+    // 关闭所有格式化相关规则，让 Prettier 完全控制格式化
+    // style/ 规则（来自 @stylistic/eslint-plugin）
     'style/brace-style': 'off',
-    // 修复 unicorn/prefer-node-protocol 兼容性问题
+    'style/operator-linebreak': 'off',
+    'style/wrap-iife': 'off',
+    'style/wrap-regex': 'off',
+    'style/implicit-arrow-linebreak': 'off',
+    'style/comma-dangle': 'off',
+    'style/indent': 'off',
+    'style/quotes': 'off',
+    'style/semi': 'off',
+    // 关闭逗号相关规则，让 Prettier 处理尾随逗号
+    'comma-dangle': 'off',
+    '@typescript-eslint/comma-dangle': 'off',
+    // 关闭 @antfu/eslint-config 特有的格式化规则
+    'antfu/if-newline': 'off',
+    'antfu/import-dedupe': 'off',
+    'antfu/top-level-function': 'off',
+    'antfu/curly': 'off',
+    // 关闭 unicorn 插件中可能有兼容性问题的规则
     'unicorn/prefer-node-protocol': 'off',
+    'unicorn/error-message': 'off', // 修复兼容性问题：context.sourceCode.isGlobalReference is not a function
+    'unicorn/no-new-array': 'off', // 修复兼容性问题：sourceCode.getRange is not a function
+    'unicorn/prefer-module': 'off',
+    'unicorn/no-array-callback-reference': 'off',
+    'unicorn/prefer-array-some': 'off',
+    'unicorn/prefer-array-find': 'off',
   },
 })

@@ -35,8 +35,7 @@ class InstallerService implements InstallerInstance {
       '.lintstagedrc.cjs',
     ]
     for (const name of candidates) {
-      if (fsExtra.existsSync(join(this.userPkg.curDir, name)))
-        return name
+      if (fsExtra.existsSync(join(this.userPkg.curDir, name))) return name
     }
     return 'lint-staged.config.mjs'
   }
@@ -61,11 +60,10 @@ class InstallerService implements InstallerInstance {
     const { preVersion, fullVersion } = this.nodeService.versions
     if (preVersion < 16 && result === PNPM) {
       this.loggerService.error(
-        `Sorry, your Node.js version is not supported by "${PNPM}".`,
+        `Sorry, your Node.js version is not supported by "${PNPM}".`
       )
       this.loggerService.error(`Expected >= 16, but got "${fullVersion}".`)
-    }
-    else {
+    } else {
       this.managerName = result
     }
   }
@@ -73,15 +71,13 @@ class InstallerService implements InstallerInstance {
   async #handleInstall(
     pluginName: string,
     dev: boolean = false,
-    version: number | null = null,
+    version: number | null = null
   ) {
     /** 必须在install前刷新一遍pkg的info,避免npm 安装时写入和我们的写入顺序冲掉了 */
     this.userPkg.get()
     const { managerName } = this
-    let exec
-      = managerName === 'yarn'
-        ? `${managerName} add `
-        : `${managerName} install `
+    let exec =
+      managerName === 'yarn' ? `${managerName} add ` : `${managerName} install `
     // 如果是本地模块，则加上-D
     dev && (exec += ' -D ')
     exec += pluginName
@@ -93,15 +89,14 @@ class InstallerService implements InstallerInstance {
       this.loggerService.warn(`Installing ${pluginName} ... `)
       this.toolService.execSync(exec)
       this.loggerService.success(`Installed ${pluginName} successfully. `)
-    }
-    catch (e) {
+    } catch (e) {
       this.loggerService.error(`Error: install ${pluginName} : `)
       console.log(e) // 承接上一行错误，但不要颜色打印
     }
   }
 
   #handleConfig(
-    config: { file: string, json: any } | Array<{ file: string, json: any }>,
+    config: { file: string, json: any } | Array<{ file: string, json: any }>
   ) {
     this.userPkg.get()
     const writeOne = (conf: { file: string, json: any }) => {
@@ -111,10 +106,9 @@ class InstallerService implements InstallerInstance {
         if (typeof json === 'object')
           this.toolService.writeJSONFileSync(filepath, json)
         else fsExtra.writeFileSync(filepath, json)
-      }
-      catch (_unused) {
+      } catch (_unused) {
         return this.loggerService.error(
-          'Internal Error: Configuration injection failed in handleConfig.',
+          'Internal Error: Configuration injection failed in handleConfig.'
         )
       }
     }
@@ -139,8 +133,7 @@ class InstallerService implements InstallerInstance {
         }
 
         this.userPkg.update(key, existingScripts)
-      }
-      else {
+      } else {
         // 其他配置直接更新
         this.userPkg.update(key, pkgInject[key])
       }
@@ -156,16 +149,16 @@ class InstallerService implements InstallerInstance {
     // 根据已安装插件，配置 lint-staged，可以覆盖现有命令
     const pkg = this.userPkg.get()
     const hasPrettier = Boolean(
-      pkg.devDependencies?.prettier || pkg.dependencies?.prettier,
+      pkg.devDependencies?.prettier || pkg.dependencies?.prettier
     )
     const hasESLint = Boolean(
-      pkg.devDependencies?.eslint || pkg.dependencies?.eslint,
+      pkg.devDependencies?.eslint || pkg.dependencies?.eslint
     )
     const hasTypeScript = Boolean(
-      pkg.devDependencies?.typescript || pkg.dependencies?.typescript,
+      pkg.devDependencies?.typescript || pkg.dependencies?.typescript
     )
     const hasHusky = Boolean(
-      pkg.devDependencies?.husky || pkg.dependencies?.husky,
+      pkg.devDependencies?.husky || pkg.dependencies?.husky
     )
 
     // 如果安装了 husky，配置 lint-staged（可以覆盖现有配置）
@@ -183,9 +176,9 @@ class InstallerService implements InstallerInstance {
 
       if (hasESLint) {
         if (lintStagedConfig[codeFiles]) {
-          lintStagedConfig[codeFiles].unshift('npx eslint --fix')
-        }
-        else {
+          // Prettier 先执行，ESLint 后执行，避免格式化冲突
+          lintStagedConfig[codeFiles].push('npx eslint --fix')
+        } else {
           lintStagedConfig[codeFiles] = ['npx eslint --fix']
         }
       }
@@ -204,16 +197,20 @@ class InstallerService implements InstallerInstance {
 
       // 同时更新 lint-staged.config.mjs 文件
       const lintStagedConfigFile = this.#resolveLintStagedFile()
-      const lintStagedConfigMjsPath = join(this.userPkg.curDir, lintStagedConfigFile)
-      const configContent = `export default {\n${Object.entries(lintStagedConfig)
+      const lintStagedConfigMjsPath = join(
+        this.userPkg.curDir,
+        lintStagedConfigFile
+      )
+      const configContent = `export default {\n${Object.entries(
+        lintStagedConfig
+      )
         .map(([pattern, commands]) => {
           const commandsStr = commands.map(cmd => `'${cmd}'`).join(', ')
           return `  '${pattern}': [${commandsStr}],`
         })
         .join('\n')}\n}`
       fsExtra.writeFileSync(lintStagedConfigMjsPath, configContent, 'utf-8')
-    }
-    else {
+    } else {
       // 如果没有安装 husky，在 scripts 中添加对应的脚本命令（不覆盖现有命令）
       const scripts = pkg.scripts || {}
 
@@ -245,11 +242,15 @@ class InstallerService implements InstallerInstance {
     }
 
     // 从项目根目录的 dist 目录读取 .gitignore 文件（发布后会在包根目录的 dist 下）
-    const projectGitignorePath = join(this.nodeService.root, 'dist', '.gitignore')
+    const projectGitignorePath = join(
+      this.nodeService.root,
+      'dist',
+      '.gitignore'
+    )
 
     if (!fsExtra.existsSync(projectGitignorePath)) {
       this.loggerService.warn(
-        '.gitignore not found in project root, skipping creation.',
+        '.gitignore not found in project root, skipping creation.'
       )
       return
     }
@@ -257,8 +258,7 @@ class InstallerService implements InstallerInstance {
     let gitignoreContent: string
     try {
       gitignoreContent = fsExtra.readFileSync(projectGitignorePath, 'utf-8')
-    }
-    catch (error) {
+    } catch (error) {
       this.loggerService.error('Failed to read .gitignore from project root:')
       console.log(error)
       return
@@ -267,8 +267,7 @@ class InstallerService implements InstallerInstance {
     try {
       fsExtra.writeFileSync(gitignorePath, gitignoreContent)
       this.loggerService.success('.gitignore file created successfully.')
-    }
-    catch (error) {
+    } catch (error) {
       this.loggerService.error('Failed to create .gitignore file:')
       console.log(error)
     }
@@ -297,14 +296,11 @@ class InstallerService implements InstallerInstance {
           // 创建通用的 .gitignore 文件
           this.#createGitignore()
 
-          this.loggerService.success(
-            'Git repository initialized successfully.',
-          )
+          this.loggerService.success('Git repository initialized successfully.')
           return true
-        }
-        else {
+        } else {
           this.loggerService.warn(
-            'Git repository creation cancelled. Husky requires git to work properly.',
+            'Git repository creation cancelled. Husky requires git to work properly.'
           )
           return false
         }
@@ -338,10 +334,9 @@ class InstallerService implements InstallerInstance {
       pkg.type = 'module'
       this.toolService.writeJSONFileSync(this.userPkg.curPath, pkg)
       this.loggerService.success('Added "type": "module" to package.json')
-    }
-    else {
+    } else {
       this.loggerService.warn(
-        'Skipping "type": "module" addition. ESLint may not work correctly without it.',
+        'Skipping "type": "module" addition. ESLint may not work correctly without it.'
       )
     }
   }
@@ -351,7 +346,7 @@ class InstallerService implements InstallerInstance {
     const gitReady = await this.#checkGit()
     if (!gitReady) {
       this.loggerService.warn(
-        'Skipping husky installation: git repository required',
+        'Skipping husky installation: git repository required'
       )
       return // 跳过 husky 安装，不抛出错误
     }
@@ -406,7 +401,7 @@ class InstallerService implements InstallerInstance {
 
     if (!fsExtra.existsSync(templatePath)) {
       this.loggerService.error(
-        `TypeScript template file not found: ${templateFileName}`,
+        `TypeScript template file not found: ${templateFileName}`
       )
       return
     }
@@ -418,7 +413,7 @@ class InstallerService implements InstallerInstance {
     const userTsConfigPath = join(this.userPkg.curDir, 'tsconfig.json')
     fsExtra.writeFileSync(userTsConfigPath, templateContent, 'utf-8')
     this.loggerService.success(
-      `Created tsconfig.json for ${framework} successfully.`,
+      `Created tsconfig.json for ${framework} successfully.`
     )
   }
 
@@ -438,7 +433,7 @@ class InstallerService implements InstallerInstance {
         dev,
         pluginName === 'husky' && this.nodeService.versions.preVersion < 16
           ? 8
-          : null,
+          : null
       )
       // 顺序很重要，放最前面
       pluginName === 'husky' && (await this.#checkHusky())
@@ -473,15 +468,14 @@ class InstallerService implements InstallerInstance {
     })
 
     while (
-      continueSelecting
-      && selectedPlugins.length < storagePlugins.length
+      continueSelecting &&
+      selectedPlugins.length < storagePlugins.length
     ) {
       const availablePlugins = storagePlugins.filter(
-        plugin => !selectedPlugins.includes(plugin),
+        plugin => !selectedPlugins.includes(plugin)
       )
 
-      if (availablePlugins.length === 0)
-        break
+      if (availablePlugins.length === 0) break
 
       const question = [
         {
@@ -499,8 +493,7 @@ class InstallerService implements InstallerInstance {
 
       if (answer.plugin === 'Done') {
         continueSelecting = false
-      }
-      else {
+      } else {
         selectedPlugins.push(answer.plugin)
       }
     }
