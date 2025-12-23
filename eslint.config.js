@@ -48,6 +48,7 @@ export default antfu({
     'style/function-paren-newline': 'off',
     'style/implicit-arrow-linebreak': 'off',
     'style/indent': 'off', // Prettier: tabWidth: 2, useTabs: false
+    'style/indent-binary-ops': 'off', // Prettier 处理缩进
     'style/jsx-quotes': 'off',
     'style/key-spacing': 'off',
     'style/keyword-spacing': 'off',
@@ -155,10 +156,17 @@ export default antfu({
     'antfu/import-dedupe': 'off',
     'antfu/top-level-function': 'off',
     'antfu/curly': 'off',
+    // 关闭 JSDoc 相关规则
+    'jsdoc/require-returns-check': 'off',
+    'jsdoc/require-returns': 'off',
+    'jsdoc/require-param': 'off',
+    'jsdoc/require-jsdoc': 'off',
     // 关闭 unicorn 插件中可能有兼容性问题的规则
     'unicorn/prefer-node-protocol': 'off',
     'unicorn/error-message': 'off', // 修复兼容性问题：context.sourceCode.isGlobalReference is not a function
     'unicorn/no-new-array': 'off', // 修复兼容性问题：sourceCode.getRange is not a function
+    'unicorn/new-for-builtins': 'off', // 修复兼容性问题：sourceCode.getRange is not a function
+    'unicorn/no-instanceof-builtins': 'off', // 修复兼容性问题：sourceCode.getRange is not a function or its return value is not iterable
     'unicorn/prefer-module': 'off',
     'unicorn/no-array-callback-reference': 'off',
     'unicorn/prefer-array-some': 'off',
