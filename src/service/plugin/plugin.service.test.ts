@@ -4,15 +4,30 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ESLINT, HUSKY, PRETTIER, TS } from "@/const/plugin.const";
 import { PluginService } from "./plugin.service";
+import { nodeService } from "@/service/node/node.service";
 
 describe("pluginService", () => {
   let testDir: string;
   let pluginService: PluginService;
   let originalCwd: string;
+  let projectRoot: string;
+  let originalRoot: string;
 
   beforeEach(() => {
     // 保存原始工作目录
     originalCwd = process.cwd();
+
+    // 获取项目根目录
+    projectRoot = path.resolve(originalCwd);
+
+    // 保存并修改 nodeService.root 指向项目根目录
+    // 这样 readProjectConfig 可以从 项目根目录/dist/ 读取配置文件
+    originalRoot = (nodeService as any).root;
+    Object.defineProperty(nodeService, "root", {
+      value: projectRoot,
+      writable: true,
+      configurable: true,
+    });
 
     // 创建临时测试目录
     testDir = path.join(tmpdir(), `baize-plugin-test-${Date.now()}`);
@@ -20,15 +35,18 @@ describe("pluginService", () => {
 
     // 切换到测试目录
     process.chdir(testDir);
-
-    // 确保项目根目录的配置文件存在（用于 readProjectConfig）
-    // PluginService 会从项目根目录读取配置文件
-    // 这些文件应该已经存在于项目根目录中
   });
 
   afterEach(() => {
     // 恢复原始工作目录
     process.chdir(originalCwd);
+
+    // 恢复 nodeService.root
+    Object.defineProperty(nodeService, "root", {
+      value: originalRoot,
+      writable: true,
+      configurable: true,
+    });
 
     // 清理测试目录
     if (fs.existsSync(testDir)) {

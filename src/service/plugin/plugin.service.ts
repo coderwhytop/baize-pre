@@ -16,15 +16,23 @@ export class PluginService implements PluginInstance {
   // 从项目根目录（baize-pre 项目本身）读取配置文件
   private readProjectConfig(relativePath: string): string {
     // 发布后会在 node_modules/baize-pre/dist 下
-    const distConfigPath = path.join(nodeService.root, "dist", relativePath);
-    if (fsExtra.existsSync(distConfigPath))
-      return fsExtra.readFileSync(distConfigPath, "utf-8");
-
-    // 开发环境：从项目根目录读取
-    const rootConfigPath = path.join(nodeService.root, relativePath);
-    if (fsExtra.existsSync(rootConfigPath))
-      return fsExtra.readFileSync(rootConfigPath, "utf-8");
-
+    // 开发环境：nodeService.root 指向 src/，需要向上跳一级到项目根目录
+    // 构建后：nodeService.root 已经指向项目根目录（因为 import.meta.url 指向 dist/cli.mjs）
+    let projectRoot = nodeService.root;
+    // 如果 root 指向 src/，说明是开发环境，需要向上跳一级
+    if (path.basename(projectRoot) === "src") {
+      projectRoot = path.join(projectRoot, "..");
+    }
+    // 尝试从 dist/ 目录读取（发布后的路径）
+    let projectConfigPath = path.join(projectRoot, "dist", relativePath);
+    if (fsExtra.existsSync(projectConfigPath)) {
+      return fsExtra.readFileSync(projectConfigPath, "utf-8");
+    }
+    // 如果 dist/ 不存在，尝试从项目根目录直接读取（用于 npm link 等本地开发场景）
+    projectConfigPath = path.join(projectRoot, relativePath);
+    if (fsExtra.existsSync(projectConfigPath)) {
+      return fsExtra.readFileSync(projectConfigPath, "utf-8");
+    }
     return "";
   }
 
