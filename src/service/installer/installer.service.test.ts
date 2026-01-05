@@ -60,7 +60,7 @@ describe("installerService", () => {
       const chooseManagerSpy = vi
         .spyOn(installerService as any, "chooseManager")
         .mockResolvedValue(undefined);
-      const { toolService } = await import("./tool.service");
+      const { toolService } = await import("../tool/tool.service");
       const execSyncSpy = vi
         .spyOn(toolService, "execSync")
         .mockImplementation(() => {});
@@ -173,7 +173,7 @@ describe("installerService", () => {
       const chooseManagerSpy = vi
         .spyOn(installerService as any, "chooseManager")
         .mockResolvedValue(undefined);
-      const { toolService } = await import("./tool.service");
+      const { toolService } = await import("../tool/tool.service");
       const execSyncSpy = vi
         .spyOn(toolService, "execSync")
         .mockImplementation(() => {});

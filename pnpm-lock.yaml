@@ -89,6 +89,9 @@ importers:
       lint-staged:
         specifier: ^15.2.7
         version: 15.5.2
+      prettier:
+        specifier: ^3.0.0
+        version: 3.7.4
       rimraf:
         specifier: ^6.0.1
         version: 6.1.2
@@ -1029,6 +1032,7 @@ packages:
       }
     cpu: [arm]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-arm-musleabihf@4.53.3":
     resolution:
@@ -1037,6 +1041,7 @@ packages:
       }
     cpu: [arm]
     os: [linux]
+    libc: [musl]
 
   "@rollup/rollup-linux-arm64-gnu@4.53.3":
     resolution:
@@ -1045,6 +1050,7 @@ packages:
       }
     cpu: [arm64]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-arm64-musl@4.53.3":
     resolution:
@@ -1053,6 +1059,7 @@ packages:
       }
     cpu: [arm64]
     os: [linux]
+    libc: [musl]
 
   "@rollup/rollup-linux-loong64-gnu@4.53.3":
     resolution:
@@ -1061,6 +1068,7 @@ packages:
       }
     cpu: [loong64]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-ppc64-gnu@4.53.3":
     resolution:
@@ -1069,6 +1077,7 @@ packages:
       }
     cpu: [ppc64]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-riscv64-gnu@4.53.3":
     resolution:
@@ -1077,6 +1086,7 @@ packages:
       }
     cpu: [riscv64]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-riscv64-musl@4.53.3":
     resolution:
@@ -1085,6 +1095,7 @@ packages:
       }
     cpu: [riscv64]
     os: [linux]
+    libc: [musl]
 
   "@rollup/rollup-linux-s390x-gnu@4.53.3":
     resolution:
@@ -1093,6 +1104,7 @@ packages:
       }
     cpu: [s390x]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-x64-gnu@4.53.3":
     resolution:
@@ -1101,6 +1113,7 @@ packages:
       }
     cpu: [x64]
     os: [linux]
+    libc: [glibc]
 
   "@rollup/rollup-linux-x64-musl@4.53.3":
     resolution:
@@ -1109,6 +1122,7 @@ packages:
       }
     cpu: [x64]
     os: [linux]
+    libc: [musl]
 
   "@rollup/rollup-openharmony-arm64@4.53.3":
     resolution:
@@ -4067,6 +4081,14 @@ packages:
         integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==,
       }
     engines: { node: ">= 0.8.0" }
+
+  prettier@3.7.4:
+    resolution:
+      {
+        integrity: sha512-v6UNi1+3hSlVvv8fSaoUbggEM5VErKmmpGA7Pl3HF8V6uKY7rvClBOJlH6yNwQtfTueNkGVpOv/mtWL9L4bgRA==,
+      }
+    engines: { node: ">=14" }
+    hasBin: true
 
   punycode@2.3.1:
     resolution:
@@ -7454,6 +7476,8 @@ snapshots:
       source-map-js: 1.2.1
 
   prelude-ls@1.2.1: {}
+
+  prettier@3.7.4: {}
 
   punycode@2.3.1: {}
 
