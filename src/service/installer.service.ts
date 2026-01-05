@@ -6,6 +6,7 @@ import type { PackageInstance } from '@/types/package.interface'
 import type { TYPE_PLUGIN_ITEM } from '@/types/plugin.types'
 import type { ToolInstance } from '@/types/tool.interface'
 import { join } from 'node:path'
+import chalk from 'chalk'
 import fsExtra from 'fs-extra'
 import inquirer from 'inquirer'
 import { MANAGER_LIST, PNPM } from '@/const/manager.const'
@@ -23,6 +24,7 @@ class InstallerService implements InstallerInstance {
   private readonly loggerService: LoggerInstance = loggerService
   private readonly toolService: ToolInstance = toolService
   private readonly nodeService: NodeInstance = nodeService
+  private selectedPlugins: string[] = [] // 跟踪已选择的插件
   // 如果用户已有 lint-staged 配置文件，则沿用其文件名；否则默认生成 lint-staged.config.mjs
   #resolveLintStagedFile(): string {
     const candidates = [
@@ -50,8 +52,10 @@ class InstallerService implements InstallerInstance {
       {
         type: 'list',
         name: questionKey,
-        message: 'Which package manager to use?',
+        message:
+          `${chalk.cyan('◆')  } ${  chalk.bold('Which package manager to use?')}`,
         choices: MANAGER_LIST,
+        default: MANAGER_LIST[0],
       },
     ]
     const answer = await inquirer.prompt(question)
@@ -85,11 +89,24 @@ class InstallerService implements InstallerInstance {
     version && (exec += `@${version}`)
 
     try {
-      // 捕获安装错误
-      this.loggerService.warn(`Installing ${pluginName} ... `)
+      // 显示安装开始信息（不换行，使用 \r 以便后续清除）
+      const installMsg = chalk.yellow(`Installing ${pluginName} ... `)
+      process.stdout.write(installMsg)
+
+      // 执行安装命令（包管理器的输出可能会覆盖或追加到当前行）
       this.toolService.execSync(exec)
+
+      // 尝试清除安装信息行：使用 ANSI 转义序列
+      // \x1b[2K 清除整行，\r 回到行首
+      // 如果包管理器已经输出了内容，这可能会清除最后一行
+      process.stdout.write('\x1B[2K\r')
+
+      // 显示成功信息（会自动换行）
       this.loggerService.success(`Installed ${pluginName} successfully. `)
     } catch (e) {
+      // 清除安装信息行
+      process.stdout.write('\x1B[2K\r')
+      // 显示错误信息（会自动换行）
       this.loggerService.error(`Error: install ${pluginName} : `)
       console.log(e) // 承接上一行错误，但不要颜色打印
     }
@@ -277,12 +294,22 @@ class InstallerService implements InstallerInstance {
     this.userPkg.get()
     const gitPath = join(this.userPkg.curDir, '.git')
     if (!fsExtra.existsSync(gitPath)) {
+      // 构建已选择插件的显示信息
+      const selectedInfo =
+        this.selectedPlugins.length > 0
+          ? chalk.gray(`Selected: ${this.selectedPlugins.join(', ')}\n`)
+          : ''
+
       // 询问用户是否创建 git
       const question = [
         {
           type: 'confirm',
           name: 'createGit',
-          message: 'No git repository found. Do you want to create one?',
+          message:
+            `${selectedInfo +
+            chalk.yellow('◆') 
+            } ` +
+            `No git repository found. Do you want to create one?`,
           default: true,
         },
       ]
@@ -316,13 +343,22 @@ class InstallerService implements InstallerInstance {
       return // 已经有 type: module，不需要处理
     }
 
+    // 构建已选择插件的显示信息
+    const selectedInfo =
+      this.selectedPlugins.length > 0
+        ? chalk.gray(`Selected: ${this.selectedPlugins.join(', ')}\n`)
+        : ''
+
     // 如果没有 type: module，询问用户是否需要添加
     const question = [
       {
         type: 'confirm',
         name: 'addModuleType',
         message:
-          'ESLint config requires "type": "module" in package.json. Do you want to add it automatically?',
+          `${selectedInfo +
+          chalk.yellow('◆') 
+          } ` +
+          `ESLint config requires "type": "module" in package.json. Do you want to add it automatically?`,
         default: true,
       },
     ]
@@ -368,16 +404,27 @@ class InstallerService implements InstallerInstance {
   }
 
   async #chooseTypeScriptFramework(): Promise<string> {
+    // 构建已选择插件的显示信息
+    const selectedInfo =
+      this.selectedPlugins.length > 0
+        ? chalk.gray(`Selected: ${this.selectedPlugins.join(', ')}\n`)
+        : ''
+
     const question = [
       {
         type: 'list',
         name: 'framework',
-        message: 'Which TypeScript framework do you want to use?',
+        message:
+          `${selectedInfo +
+          chalk.blue('◆') 
+          } ${ 
+          chalk.bold('Select a variant:')}`,
         choices: [
           { name: 'Vue + TypeScript', value: 'vue' },
           { name: 'React + TypeScript', value: 'react' },
           { name: 'Node.js + TypeScript', value: 'node' },
         ],
+        default: 'vue',
       },
     ]
 
@@ -418,6 +465,9 @@ class InstallerService implements InstallerInstance {
   }
 
   async install(plugins: TYPE_PLUGIN_ITEM[]) {
+    // 初始化已选择的插件列表
+    this.selectedPlugins = plugins.map(p => p.name)
+
     await this.chooseManager()
     for (const pluginItem of plugins) {
       const { name, config, dev, pkgInject } = pluginItem
@@ -451,6 +501,8 @@ class InstallerService implements InstallerInstance {
         this.#handleConfig(config)
       }
     }
+    // 安装完成后清空已选择列表
+    this.selectedPlugins = []
     await this.#finalizeLintStaged()
   }
 
@@ -458,45 +510,30 @@ class InstallerService implements InstallerInstance {
     this.pluginService = new PluginService(false)
     const storagePlugins = this.pluginService.getAll()
 
-    // 使用更可靠的交互方式，避免 checkbox 键盘快捷键问题
-    const selectedPlugins: string[] = []
-    let continueSelecting = true
-
-    console.log('Available plugins:')
-    storagePlugins.forEach((plugin, index) => {
-      console.log(`${index + 1}. ${plugin}`)
-    })
-
-    while (
-      continueSelecting &&
-      selectedPlugins.length < storagePlugins.length
-    ) {
-      const availablePlugins = storagePlugins.filter(
-        plugin => !selectedPlugins.includes(plugin)
-      )
-
-      if (availablePlugins.length === 0) break
-
-      const question = [
-        {
-          type: 'list',
-          name: 'plugin',
-          message:
-            selectedPlugins.length > 0
-              ? `Selected: ${selectedPlugins.join(', ')}\nChoose another plugin (or 'Done' to finish):`
-              : 'Choose a plugin to install:',
-          choices: [...availablePlugins, new inquirer.Separator(), 'Done'],
+    // 使用 checkbox 进行多选，提供更好的交互体验
+    const question = [
+      {
+        type: 'checkbox',
+        name: 'plugins',
+        message:
+          `${chalk.cyan('◆')  } ${  chalk.bold('Select plugins to install:')}`,
+        choices: storagePlugins.map(plugin => ({
+          name: plugin,
+          value: plugin,
+          checked: false,
+        })),
+        pageSize: 10,
+        validate: (answer: string[]) => {
+          if (answer.length === 0) {
+            return '请至少选择一个插件！'
+          }
+          return true
         },
-      ]
+      },
+    ]
 
-      const answer = await inquirer.prompt(question)
-
-      if (answer.plugin === 'Done') {
-        continueSelecting = false
-      } else {
-        selectedPlugins.push(answer.plugin)
-      }
-    }
+    const answer = await inquirer.prompt(question)
+    const selectedPlugins = answer.plugins || []
 
     if (selectedPlugins.length === 0) {
       this.loggerService.warn('No plugins selected. Installation cancelled.')

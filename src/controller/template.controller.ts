@@ -1,6 +1,7 @@
 import type { SimpleGit } from 'simple-git'
 import fs from 'node:fs'
 import path from 'node:path'
+import chalk from 'chalk'
 import inquirer from 'inquirer'
 import simpleGit from 'simple-git'
 
@@ -22,11 +23,11 @@ export class TemplateController {
 
     const branches = await this.getBranches()
     if (branches) {
-      const branch = await this.selectBranch(branches)
       const projectName = await this.projectName()
+      const branch = await this.selectBranch(branches)
       await this.cloneAndRename(branch, projectName)
       await this.deleteGit(projectName)
-      console.log('项目创建成功!')
+      console.log(chalk.green('✓ 项目创建成功!'))
     }
   }
 
@@ -36,8 +37,12 @@ export class TemplateController {
       {
         type: 'list',
         name: 'branch',
-        message: '请选择一个分支：',
-        choices: branches,
+        message: `${chalk.cyan('◆')} ${chalk.bold('Select a template:')}`,
+        choices: branches.map(branch => ({
+          name: branch,
+          value: branch,
+        })),
+        pageSize: 10,
       },
     ])
     return branchAnswer.branch
@@ -49,9 +54,25 @@ export class TemplateController {
       {
         type: 'input',
         name: 'projectName',
-        message: '请输入项目名称：',
-        validate: (input: string) =>
-          input.trim() ? true : '项目名称不能为空！',
+        message: `${chalk.green('◆')} ${chalk.bold('Project name:')}`,
+        default: 'my-project',
+        validate: (input: string) => {
+          const trimmed = input.trim()
+          if (!trimmed) {
+            return '项目名称不能为空！'
+          }
+          // 检查是否包含非法字符
+          if (!/^[\w-]+$/.test(trimmed)) {
+            return '项目名称只能包含字母、数字、下划线和连字符！'
+          }
+          // 检查目录是否已存在
+          const projectDir = path.join(process.cwd(), trimmed)
+          if (fs.existsSync(projectDir)) {
+            return `目录 "${trimmed}" 已存在，请选择其他名称！`
+          }
+          return true
+        },
+        filter: (input: string) => input.trim(),
       },
     ])
     return projectNameAnswer.projectName
@@ -67,8 +88,7 @@ export class TemplateController {
       return response.data
         .map((branch: any) => branch.name)
         .filter((item: string) => item !== 'master')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error fetching branches:', error)
     }
   }
@@ -82,7 +102,7 @@ export class TemplateController {
       await this.git.clone(
         `https://github.com/${this.owner}/${this.repo}.git`,
         cloneDir,
-        ['--branch', branch, '--single-branch'],
+        ['--branch', branch, '--single-branch']
       )
       console.log(`代码克隆成功！`)
 
@@ -97,8 +117,7 @@ export class TemplateController {
 
       // 可以在这里添加其他初始化步骤，比如安装依赖等
       // await this.git.cwd(cloneDir).raw(["npm", "install"]);
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error cloning or renaming project:', error)
     }
   }
