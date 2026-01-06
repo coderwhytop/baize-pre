@@ -10,7 +10,7 @@ class CommandService implements CommandInstance {
     this.packageService = new PackageService(false);
     const pkgInfo = this.packageService.get();
     const binKeys = pkgInfo.bin ? Object.keys(pkgInfo.bin) : [];
-    this.main = `${binKeys[0] || "baize"}`;
+    this.main = `${binKeys[0] || "p"}`;
     this.subs = {
       init: {
         alias: "",

@@ -39,14 +39,14 @@ pnpm add -g baize-pre
 pnpm add -D baize-pre
 ```
 
-安装后可通过 `baize` 命令使用。
+安装后可通过 `p` 命令使用。
 
 ## 快速开始
 
 在一个已存在的项目中渐进接入：
 
 ```bash
-baize init
+p init
 # 交互式选择并安装需要的插件（Prettier / Husky / TypeScript 等）
 # 选择 TypeScript 时，会进一步询问框架类型（Vue / React / Node.js），自动生成对应的 tsconfig.json
 ```
@@ -55,38 +55,38 @@ baize init
 
 ```bash
 mkdir my-app && cd my-app
-baize init --all
+p init --all
 # 一次性安装并写入所有内置插件与配置
 ```
 
 从官方模板创建新项目：
 
 ```bash
-baize template
+p template
 # 选择模板分支 → 输入项目名 → 自动克隆、改名并清理 .git
 ```
 
 ## 命令说明
 
-- `baize init`：交互式选择并安装多个插件。使用 `baize init --all` 可一键安装所有内置插件。
+- `p init`：交互式选择并安装多个插件。使用 `p init --all` 可一键安装所有内置插件。
   - **TypeScript 框架选择**：当选择安装 TypeScript 插件时，会进一步询问项目框架类型：
     - **Vue + TypeScript**：生成适用于 Vue 3 + Vite 的 `tsconfig.json`（支持 `.vue` 文件、`jsx: "preserve"`）
     - **React + TypeScript**：生成适用于 React + Vite 的 `tsconfig.json`（`jsx: "react-jsx"`）
     - **Node.js + TypeScript**：生成适用于 Node.js 项目的 `tsconfig.json`（包含编译输出配置）
-- `baize template`：选择 `baizeteam/baize-template` 分支，克隆模板、改名并删除 `.git`。
-- `baize -h`：查看帮助；`baize -V`：查看当前版本。
+- `p template`：选择 `baizeteam/baize-template` 分支，克隆模板、改名并删除 `.git`。
+- `p -h`：查看帮助；`p -V`：查看当前版本。
 
 ## 常见用法示例
 
 ```bash
 # 交互式选择并安装插件
-baize init
+p init
 
 # 一键安装所有内置插件
-baize init --all
+p init --all
 
 # 从模板创建新项目
-baize template
+p template
 ```
 
 ## 依赖与技术栈
@@ -167,7 +167,7 @@ baize template
 #### 🚀 优化
 
 - **交互提示美化**：所有交互提示添加了彩色图标和加粗样式，提升视觉体验
-- **项目名称验证增强**：`baize template` 命令的项目名称输入增加了更严格的验证（检查非法字符、目录是否存在）
+- **项目名称验证增强**：`p template` 命令的项目名称输入增加了更严格的验证（检查非法字符、目录是否存在）
 - **安装过程优化**：安装信息在安装过程中显示，完成后自动清除，避免终端输出冗余
 
 ### v0.6.0

@@ -1,7 +1,7 @@
 {
   "name": "baize-pre",
   "type": "module",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "A useful progressive front-end normalization tool.",
   "author": "kevin",
   "license": "ISC",
@@ -21,7 +21,7 @@
     "angular"
   ],
   "bin": {
-    "baize": "dist/cli.mjs"
+    "p": "dist/cli.mjs"
   },
   "files": [
     "dist"

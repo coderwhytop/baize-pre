@@ -6,7 +6,7 @@ describe("commandService", () => {
     it("应该有主命令名称", () => {
       expect(commandService.main).toBeTruthy();
       expect(typeof commandService.main).toBe("string");
-      expect(commandService.main).toBe("baize");
+      expect(commandService.main).toBe("p");
     });
   });
 
